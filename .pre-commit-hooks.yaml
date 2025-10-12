@@ -1,0 +1,8 @@
+- id: node-ai-precommit
+  name: Node.js AI Pre-commit Hook
+  description: AI-powered pre-commit hook for Node.js projects
+  entry: node-ai-precommit
+  language: node
+  types: [javascript, typescript]
+  stages: [commit-msg, pre-commit]
+  verbose: true

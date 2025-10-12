@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+'use strict';
+
+const { program } = require('commander');
+const { runPrecommit } = require('../src/index');
+const { version } = require('../package.json');
+
+program
+  .version(version)
+  .description('AI-powered pre-commit hook that analyzes code, generates tests, and improves code quality')
+  .option('-v, --verbose', 'enable verbose output')
+  .option('--no-commit', 'skip auto-committing improved code')
+  .option('--no-tests', 'skip test generation')
+  .option('--api-key <key>', 'set the AI API key')
+  .action(async (options) => {
+    try {
+      process.exitCode = await runPrecommit(options);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+program.parse(process.argv);
