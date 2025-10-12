@@ -1,4 +1,5 @@
 // This is a test file for the pre-commit hook
+
 function calculateSum(a, b) {
   // This function adds two numbers
   return a + b;
