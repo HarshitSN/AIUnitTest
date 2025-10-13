@@ -6,28 +6,13 @@ const path = require('path');
 const diff = require('diff');
 const readline = require('readline');
 
-// Load config from .aiprecommitrc
-let config = {};
-try {
-  const configPath = path.join(process.cwd(), '.aiprecommitrc');
-  const configFile = require('fs').readFileSync(configPath, 'utf8');
-  const configData = JSON.parse(configFile);
-  
-  config = {
-    get: (key) => {
-      const parts = key.split('.');
-      let value = configData;
-      for (const part of parts) {
-        value = value && value[part];
-        if (value === undefined) return undefined;
-      }
-      return value;
-    }
-  };
-} catch (error) {
-  console.error('❌ Error loading configuration:', error.message);
-  process.exit(1);
-}
+// Simple config
+const config = {
+  get: (key) => ({
+    'groq.apiKey': process.env.GROQ_API_KEY || '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',
+    'groq.model': 'llama-3.1-8b-instant'
+  }[key])
+};
 
 // Import the GroqAIAnalyzer
 const { GroqAIAnalyzer } = require('../src/groq-analyzer');

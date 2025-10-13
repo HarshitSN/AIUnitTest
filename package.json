@@ -23,11 +23,6 @@
   ],
   "author": "StatusNeo",
   "license": "MIT",
-  "husky": {
-    "hooks": {
-      "pre-commit": "node src/index.js"
-    }
-  },
   "dependencies": {
     "@babel/parser": "^7.23.5",
     "@babel/traverse": "^7.23.5",
@@ -56,7 +51,7 @@
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
-    "husky": "^8.0.3",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "lint-staged": "^15.0.2"
   },
@@ -68,6 +63,11 @@
       "prettier --write",
       "eslint --fix"
     ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "node scripts/pre-commit-runner.js && npx lint-staged"
+    }
   },
   "prettier": {
     "semi": true,

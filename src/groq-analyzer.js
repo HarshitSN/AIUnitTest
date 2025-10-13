@@ -93,22 +93,11 @@ class GroqAIAnalyzer {
     let match;
     
     while ((match = codeBlockRegex.exec(text)) !== null) {
-      codeBlocks.push(match[1]);
+      // Remove any language specifier from the first line if present
+      const content = match[1].replace(/^\S+\n/, '');
+      codeBlocks.push(content);
     }
     
-    return codeBlocks.length > 0 ? codeBlocks : [];
-    ast.body.forEach((node) => {
-      if (node.type === 'Program') {
-        node.body.forEach((childNode) => {
-          if (childNode.type === 'ExpressionStatement' && childNode.expression.type === 'Literal' && childNode.expression.value === '```') {
-            const codeBlock = childNode.nextSibling;
-            if (codeBlock && codeBlock.type === 'BlockStatement') {
-              codeBlocks.push(codeBlock.body.map((childCodeBlock) => childCodeBlock.type === 'ExpressionStatement' ? childCodeBlock.expression : '').join('\n'));
-            }
-          }
-        });
-      }
-    });
     return codeBlocks;
   }
 
