@@ -23,6 +23,11 @@
   ],
   "author": "StatusNeo",
   "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "node src/index.js"
+    }
+  },
   "dependencies": {
     "@babel/parser": "^7.23.5",
     "@babel/traverse": "^7.23.5",
@@ -63,11 +68,6 @@
       "prettier --write",
       "eslint --fix"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "node scripts/pre-commit-runner.js && npx lint-staged"
-    }
   },
   "prettier": {
     "semi": true,

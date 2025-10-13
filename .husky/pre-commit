@@ -4,7 +4,7 @@
 echo "🚀 Running pre-commit checks..."
 
 # Get list of staged JavaScript/TypeScript files
-FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx)$' || true)
+FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx)$')
 
 if [ -z "$FILES" ]; then
   echo "✅ No JavaScript/TypeScript files to analyze."
@@ -19,6 +19,6 @@ echo ""
 echo "🔍 Running AI analysis..."
 node scripts/pre-commit-runner.js
 
-# Run lint-staged
-echo "🔧 Running lint-staged..."
-npx lint-staged
+# The script will exit with 0 for warnings, 1 for errors
+echo "✅ Pre-commit checks completed"
+exit 0

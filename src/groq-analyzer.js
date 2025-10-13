@@ -10,53 +10,39 @@ class GroqAIAnalyzer {
   }
 
   async analyzeCode(code, filePath) {
+    if (!code || typeof code !== 'string') {
+      return {
+        success: false,
+        error: 'Invalid code provided',
+        file: filePath
+      };
+    }
+
     try {
-      // Get API key and model from config
-      const apiKey = this.config.get('groq.apiKey');
-      const model = this.config.get('groq.model');
+      const prompt = `Review this code and provide:
+1. One-line summary of what it does
+2. One potential issue to fix
+3. Improved version with fixes
 
-      if (!apiKey) {
-        const error = new Error('No API key found. Please set the GROQ_API_KEY environment variable.');
-        error.status = 401;
-        throw error;
-      }
+Code:\n\`\`\`\n${code}\n\`\`\``;
 
-      const response = await fetch('https://api.groq.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a helpful code reviewer. Analyze the following code and provide feedback.'
-            },
-            {
-              role: 'user',
-              content: `Please analyze this code (${filePath || 'unknown file'}):\n\n\`\`\`javascript\n${code}\n\`\`\``
-            }
-          ]
-        })
+      const completion = await this.groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a senior software engineer reviewing code. Provide clear, concise feedback and improved code when possible.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        model: this.config.get('groq.model') || 'llama-3.1-8b-instant',
+        temperature: 0.3,
+        max_tokens: 1000
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const error = new Error(errorData.error?.message || 'API request failed');
-        error.status = response.status;
-        error.code = errorData.error?.code;
-        throw error;
-      }
-
-      const responseJson = await response.json();
-      const completion = responseJson.choices[0];
-      if (!completion) {
-        throw new Error('No response from API');
-      }
-
-      const responseText = completion.message.content || 'No response';
+      const response = completion.choices[0]?.message?.content || 'No response';
 
       // Extract improved code if present
       const improvedCode = this.extractCodeBlocks(response)[0] || code;
@@ -93,11 +79,22 @@ class GroqAIAnalyzer {
     let match;
     
     while ((match = codeBlockRegex.exec(text)) !== null) {
-      // Remove any language specifier from the first line if present
-      const content = match[1].replace(/^\S+\n/, '');
-      codeBlocks.push(content);
+      codeBlocks.push(match[1]);
     }
     
+    return codeBlocks.length > 0 ? codeBlocks : [];
+    ast.body.forEach((node) => {
+      if (node.type === 'Program') {
+        node.body.forEach((childNode) => {
+          if (childNode.type === 'ExpressionStatement' && childNode.expression.type === 'Literal' && childNode.expression.value === '```') {
+            const codeBlock = childNode.nextSibling;
+            if (codeBlock && codeBlock.type === 'BlockStatement') {
+              codeBlocks.push(codeBlock.body.map((childCodeBlock) => childCodeBlock.type === 'ExpressionStatement' ? childCodeBlock.expression : '').join('\n'));
+            }
+          }
+        });
+      }
+    });
     return codeBlocks;
   }
 
