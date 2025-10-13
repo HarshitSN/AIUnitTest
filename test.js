@@ -13,7 +13,7 @@ function calculateTotal(items) {
     return 0; // or throw an error, depending on the desired behavior
   }
   rdtyhnjmkS
-  let total = 0;s
+  let total = 0;ss
   
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
