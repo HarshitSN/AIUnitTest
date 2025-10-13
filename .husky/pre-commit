@@ -1,24 +1,8 @@
-#!/usr/bin/env sh
+#!/bin/sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo "🚀 Running pre-commit checks..."
-
-# Get list of staged JavaScript/TypeScript files
-FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx)$')
-
-if [ -z "$FILES" ]; then
-  echo "✅ No JavaScript/TypeScript files to analyze."
-  exit 0
-fi
-
-echo "📋 Files to analyze:"
-echo "$FILES"
-echo ""
-
-# Run the pre-commit runner script
-echo "🔍 Running AI analysis..."
+# Run our pre-commit runner script
 node scripts/pre-commit-runner.js
 
-# The script will exit with 0 for warnings, 1 for errors
-echo "✅ Pre-commit checks completed"
-exit 0
+# Capture the exit code
+exit $?
