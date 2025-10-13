@@ -25,3 +25,6 @@ function calculateTotal(items) {
   
   return total;
 }
+
+a=2
+print(a)
