@@ -14,7 +14,7 @@ function calculateTotal(items) {
   }
   rdtyhnjmkS
   let total = 0;ss
-  
+  rcuomm
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     if (typeof item !== 'object' || !item.price || !item.quantity) {
