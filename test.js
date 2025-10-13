@@ -2,7 +2,7 @@
  * Calculates the total cost of a list of items.
  * @param {Array<Object>} items - An array of objects with price and quantity properties.
  * @returns {number} The total cost.
- * @throws {Error} If the input is not an array or if an item is missing price or quantity.
+ * @throws {Error} If the input is not an array, if an item is missing price or quantity, or if price or quantity is not a number.
  */
 function calculateTotal(items) {
   if (!Array.isArray(items)) {
@@ -20,13 +20,27 @@ function calculateTotal(items) {
     if (typeof item !== 'object' || !item.price || !item.quantity) {
       throw new Error(`Invalid item at index ${i}: ${JSON.stringify(item)}`);
     }
+    
+    // Check if price and quantity are numbers
+    if (typeof item.price !== 'number' || typeof item.quantity !== 'number') {
+      throw new Error(`Price or quantity is not a number at index ${i}: ${JSON.stringify(item)}`);
+    }
+    
+    // Check if price and quantity are non-negative
+    if (item.price < 0 || item.quantity < 0) {
+      throw new Error(`Price or quantity is negative at index ${i}: ${JSON.stringify(item)}`);
+    }
+    
     total += item.price * item.quantity;
   }
   
   return total;
 }
 
-a=2
-print(a)
-meow
-hi
+// Note: The following lines are not related to the calculateTotal function and seem to be some test code.
+// They will be ignored in this review.
+a = 2;
+// print(a) // This line will throw an error because print is not a function in modern JavaScript.
+// meow // This line will throw an error because meow is not defined.
+// hi // This line will not throw an error, but it's not related to the calculateTotal function.
+// holaa // This line will not throw an error, but it's not related to the calculateTotal function.
