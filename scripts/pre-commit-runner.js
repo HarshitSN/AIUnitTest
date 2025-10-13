@@ -76,6 +76,13 @@ async function analyzeFile(filePath) {
         
         console.log('\n\x1b[36m💡 The AI has suggested some improvements. Please review them above.\x1b[0m');
         
+        // In non-interactive mode, default to not applying changes
+        if (!process.stdout.isTTY) {
+          console.log('\n⚠️  Running in non-interactive mode. Changes will not be applied automatically.');
+          console.log('   To apply changes, run the pre-commit hook in an interactive terminal.');
+          return true; // Don't fail the commit, just skip applying changes
+        }
+
         let answer = 'n';
         try {
           // Use our more reliable prompt function
@@ -99,7 +106,6 @@ async function analyzeFile(filePath) {
       return true;
     } else {
       console.error(`❌ Analysis failed: ${result.error}`);
-      return false;
     }
   } catch (error) {
     console.error(`❌ Error analyzing ${filePath}:`, error.message);
@@ -111,7 +117,6 @@ async function run() {
   try {
     console.clear(); // Clear the console for better visibility
     console.log('🚀 Running AI Code Analysis...');
-    
     // Check if we should run in non-interactive mode
     if (process.env.NODE_ENV === 'test') {
       console.log('ℹ️  Running in test mode - will not apply changes automatically\n');
