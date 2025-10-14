@@ -16,7 +16,7 @@ function calculateTotal(items) {
 const items = [
   { price: 10, quantity: 2 },
   { price: 15, quantity: 1 },
-  { price: 5, quantity: 3 }
+  { price: 5, quantity: 3 },
 ];
 
 console.log('Total:', calculateTotal(items));

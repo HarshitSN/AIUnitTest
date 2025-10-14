@@ -8,7 +8,7 @@ class Config {
 
   loadConfig() {
     const configPath = path.join(process.cwd(), '.aiprecommitrc');
-    
+
     if (fs.existsSync(configPath)) {
       try {
         return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -25,16 +25,16 @@ class Config {
       ai: {
         provider: 'google',
         apiKey: process.env.GOOGLE_AI_API_KEY || '',
-        model: 'gemini-pro'
+        model: 'gemini-pro',
       },
       rules: {
         requireTests: true,
         minTestCoverage: 80,
         interactive: false,
         strictMode: false,
-        languages: ['javascript', 'typescript']
+        languages: ['javascript', 'typescript'],
       },
-      ignorePatterns: ['node_modules/', 'dist/', '*.test.js', '*.spec.js']
+      ignorePatterns: ['node_modules/', 'dist/', '*.test.js', '*.spec.js'],
     };
   }
 
@@ -45,12 +45,12 @@ class Config {
   set(key, value) {
     const keys = key.split('.');
     let obj = this.config;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       obj[keys[i]] = obj[keys[i]] || {};
       obj = obj[keys[i]];
     }
-    
+
     obj[keys[keys.length - 1]] = value;
   }
 }

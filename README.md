@@ -30,6 +30,7 @@ yarn add --dev node-ai-precommit-tester
 ### Set up with Husky (recommended)
 
 1. Install Husky if you haven't already:
+
    ```bash
    npx husky-init && npm install
    ```
@@ -46,7 +47,7 @@ Add this to your `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/yourusername/node-ai-precommit-tester
-    rev: v0.1.0  # Use the latest version
+    rev: v0.1.0 # Use the latest version
     hooks:
       - id: node-ai-precommit
 ```
@@ -58,9 +59,9 @@ Create a `.aiprecommitrc.yml` file in your project root:
 ```yaml
 # AI settings
 ai:
-  provider: gemini  # or 'openai' if implemented
+  provider: gemini # or 'openai' if implemented
   model: gemini-pro
-  apiKey: ${GEMINI_API_KEY}  # or paste your API key directly
+  apiKey: ${GEMINI_API_KEY} # or paste your API key directly
 
 # Test settings
 test:
@@ -70,7 +71,7 @@ test:
 
 # Risk assessment
 risk:
-  maxAllowed: 7  # Block commits with risk score > 7
+  maxAllowed: 7 # Block commits with risk score > 7
 
 # UI settings
 ui:

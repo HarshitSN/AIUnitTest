@@ -5,7 +5,7 @@ class GroqAIAnalyzer {
   constructor(config) {
     this.config = config;
     this.groq = new Groq({
-      apiKey: this.config.get('groq.apiKey')
+      apiKey: this.config.get('groq.apiKey'),
     });
   }
 
@@ -14,7 +14,7 @@ class GroqAIAnalyzer {
       return {
         success: false,
         error: 'Invalid code provided',
-        file: filePath
+        file: filePath,
       };
     }
 
@@ -30,16 +30,17 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
         messages: [
           {
             role: 'system',
-            content: 'You are a senior software engineer reviewing code. Provide clear, concise feedback and improved code when possible.'
+            content:
+              'You are a senior software engineer reviewing code. Provide clear, concise feedback and improved code when possible.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         model: this.config.get('groq.model') || 'llama-3.1-8b-instant',
         temperature: 0.3,
-        max_tokens: 1000
+        max_tokens: 1000,
       });
 
       const response = completion.choices[0]?.message?.content || 'No response';
@@ -66,30 +67,40 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
       return {
         success: false,
         error: error.message,
-        file: filePath
+        file: filePath,
       };
     }
   }
 
   extractCodeBlocks(text) {
     if (!text) return [];
-    
+
     const codeBlocks = [];
     const codeBlockRegex = /```(?:javascript|js|typescript|ts)?\n([\s\S]*?)\n```/g;
     let match;
-    
+
     while ((match = codeBlockRegex.exec(text)) !== null) {
       codeBlocks.push(match[1]);
     }
-    
+
     return codeBlocks.length > 0 ? codeBlocks : [];
     ast.body.forEach((node) => {
       if (node.type === 'Program') {
         node.body.forEach((childNode) => {
-          if (childNode.type === 'ExpressionStatement' && childNode.expression.type === 'Literal' && childNode.expression.value === '```') {
+          if (
+            childNode.type === 'ExpressionStatement' &&
+            childNode.expression.type === 'Literal' &&
+            childNode.expression.value === '```'
+          ) {
             const codeBlock = childNode.nextSibling;
             if (codeBlock && codeBlock.type === 'BlockStatement') {
-              codeBlocks.push(codeBlock.body.map((childCodeBlock) => childCodeBlock.type === 'ExpressionStatement' ? childCodeBlock.expression : '').join('\n'));
+              codeBlocks.push(
+                codeBlock.body
+                  .map((childCodeBlock) =>
+                    childCodeBlock.type === 'ExpressionStatement' ? childCodeBlock.expression : ''
+                  )
+                  .join('\n')
+              );
             }
           }
         });
@@ -117,7 +128,13 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     const suggestions = [];
     const lines = analysis.split('\n');
     for (const line of lines) {
-      if ((line.trim().startsWith('- ') || line.trim().startsWith('* ') || line.trim().match(/^\d+\./)) && !line.toLowerCase().includes('error:') && !line.toLowerCase().includes('warning:')) {
+      if (
+        (line.trim().startsWith('- ') ||
+          line.trim().startsWith('* ') ||
+          line.trim().match(/^\d+\./)) &&
+        !line.toLowerCase().includes('error:') &&
+        !line.toLowerCase().includes('warning:')
+      ) {
         const suggestion = line.replace(/^[\s*\d\.-]+/, '').trim();
         if (suggestion) {
           suggestions.push(suggestion);

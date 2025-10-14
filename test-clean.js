@@ -18,7 +18,7 @@ function calculateTotal(items) {
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    
+
     // Input validation
     if (typeof item !== 'object' || !item.price || !item.quantity) {
       throw new Error(`Invalid item at index ${i}: ${JSON.stringify(item)}`);
@@ -44,7 +44,7 @@ function calculateTotal(items) {
 const testItems = [
   { price: 10, quantity: 2 },
   { price: 15, quantity: 1 },
-  { price: 5, quantity: 3 }
+  { price: 5, quantity: 3 },
 ];
 
 console.log('Test 1 - Valid items:', calculateTotal(testItems) === 50 ? 'Passed' : 'Failed');
@@ -57,7 +57,10 @@ try {
   calculateTotal('not an array');
   console.log('Test 3 - Invalid input (not an array): Failed - No error thrown');
 } catch (e) {
-  console.log('Test 3 - Invalid input (not an array):', e.message.includes('must be an array') ? 'Passed' : 'Failed');
+  console.log(
+    'Test 3 - Invalid input (not an array):',
+    e.message.includes('must be an array') ? 'Passed' : 'Failed'
+  );
 }
 
 // Test with missing price

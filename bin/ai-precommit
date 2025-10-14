@@ -8,7 +8,9 @@ const { version } = require('../package.json');
 
 program
   .version(version)
-  .description('AI-powered pre-commit hook that analyzes code, generates tests, and improves code quality')
+  .description(
+    'AI-powered pre-commit hook that analyzes code, generates tests, and improves code quality'
+  )
   .option('-v, --verbose', 'enable verbose output')
   .option('--no-commit', 'skip auto-committing improved code')
   .option('--no-tests', 'skip test generation')

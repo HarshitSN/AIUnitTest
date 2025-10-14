@@ -1,7 +1,7 @@
 // This function has several areas that could be improved
 function processData(data) {
   let result = [];
-  
+
   // Inefficient nested loops
   for (let i = 0; i < data.length; i++) {
     for (let j = 0; j < data[i].items.length; j++) {
@@ -10,12 +10,12 @@ function processData(data) {
           id: data[i].id,
           name: data[i].name,
           item: data[i].items[j].name,
-          value: data[i].items[j].value * 1.1 // Hardcoded tax
+          value: data[i].items[j].value * 1.1, // Hardcoded tax
         });
       }
     }
   }
-  
+
   return result;
 }
 
