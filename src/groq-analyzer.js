@@ -86,6 +86,21 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     return codeBlocks.length > 0 ? codeBlocks : [];
   }
 
+  extractIssues(analysis) {
+    const issues = [];
+    const lines = analysis.split('\n');
+    for (const line of lines) {
+      if (line.toLowerCase().includes('error:') || line.toLowerCase().includes('warning:')) {
+        const severity = line.toLowerCase().includes('error:') ? 'error' : 'warning';
+        const message = line.split(':').slice(1).join(':').trim();
+        if (message) {
+          issues.push({ severity, message });
+        }
+      }
+    }
+    return issues;
+  }
+
   extractSuggestions(analysis) {
     const suggestions = [];
     const lines = analysis.split('\n');
