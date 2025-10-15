@@ -42,8 +42,17 @@ async function generateTests() {
       const testFileDir = path.dirname(fileName);
       const testFilePath = path.join(testFileDir, '__tests__', testFileName);
 
+      // Ensure CommonJS syntax for Jest compatibility
+      let testCode = result.testCode;
+
+      // Convert ES6 imports to CommonJS requires if present
+      testCode = testCode.replace(
+        /import\s+{\s*([^}]+)\s*}\s+from\s+['"]@jest\/globals['"];?/g,
+        "const { $1 } = require('@jest/globals');"
+      );
+
       await fs.mkdir(path.dirname(testFilePath), { recursive: true });
-      await fs.writeFile(testFilePath, result.testCode, 'utf8');
+      await fs.writeFile(testFilePath, testCode, 'utf8');
 
       console.log('✅ Generated test file: ' + testFilePath);
     } else {
