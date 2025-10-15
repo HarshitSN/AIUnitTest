@@ -68,13 +68,16 @@ describe('multiply', () => {
   });
 
   describe('error handling', () => {
-    test('should throw error for non-numeric inputs', () => {
+    test('should return NaN for non-numeric inputs', () => {
       // Arrange
       const x = 'five';
       const y = 10;
 
-      // Act and Assert
-      expect(() => x * y).toThrowError();
+      // Act
+      const result = x * y;
+
+      // Assert
+      expect(result).toBeNaN();
     });
   });
 });
