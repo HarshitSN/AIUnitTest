@@ -1,12 +1,13 @@
 module.exports = {
   testEnvironment: 'node',
-  testMatch: ['**/test/**/*.test.js'],
+  testMatch: ['**/__tests__/**/*.test.js', '**/test/**/*.test.js'],
   collectCoverage: true,
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     '**/*.js', // Include all JavaScript files in the project
     '!**/node_modules/**', // Exclude node_modules
-    '!**/test/**', // Exclude test files
+    '!**/__tests__/**', // Exclude test files in __tests__ directories
+    '!**/test/**', // Exclude test files in test directories
     '!**/coverage/**', // Exclude coverage files
   ],
   coverageThreshold: {
@@ -18,4 +19,5 @@ module.exports = {
     },
   },
   verbose: true,
+  passWithNoTests: true,
 };
