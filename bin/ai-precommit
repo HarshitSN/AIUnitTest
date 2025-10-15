@@ -2,8 +2,10 @@
 
 'use strict';
 
-const { program } = require('commander');
-const { runPrecommit } = require('../src/index');
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+import { program } from 'commander';
+import { runPrecommit } from '../src/index.js';
 const { version } = require('../package.json');
 
 program
