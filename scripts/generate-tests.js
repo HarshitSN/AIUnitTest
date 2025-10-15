@@ -16,10 +16,11 @@ if (!process.env.GROQ_API_KEY) {
 }
 
 const config = {
-  get: (key) => ({
-    'groq.apiKey': process.env.GROQ_API_KEY,
-    'groq.model': 'llama-3.1-8b-instant',
-  })[key],
+  get: (key) =>
+    ({
+      'groq.apiKey': process.env.GROQ_API_KEY,
+      'groq.model': 'llama-3.1-8b-instant',
+    })[key],
 };
 
 const analyzer = new GroqAIAnalyzer(config);
@@ -72,8 +73,18 @@ async function main() {
   try {
     execSync('git add .');
     execSync('git commit -m "Add AI-generated test files"');
-    execSync('git push origin main');
-    console.log('✅ Committed and pushed test files to repository');
+    console.log('✅ Committed test files locally');
+
+    // Try to push, but don't fail if it doesn't work (common in CI environments)
+    try {
+      execSync('git push origin main');
+      console.log('✅ Pushed test files to remote repository');
+    } catch (pushError) {
+      console.log('⚠️ Could not push to remote repository');
+      console.log('   (this is normal in some CI environments)');
+      console.log('💡 Generated test files are committed locally');
+      console.log('   and will be available in the next push');
+    }
   } catch (commitError) {
     console.error('❌ Failed to commit test files:', commitError.message);
   }

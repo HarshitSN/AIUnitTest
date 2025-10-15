@@ -105,7 +105,11 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     const suggestions = [];
     const lines = analysis.split('\n');
     for (const line of lines) {
-      if (line.toLowerCase().includes('suggestion:') || line.toLowerCase().includes('recommend:') || line.toLowerCase().includes('tip:')) {
+      if (
+        line.toLowerCase().includes('suggestion:') ||
+        line.toLowerCase().includes('recommend:') ||
+        line.toLowerCase().includes('tip:')
+      ) {
         const message = line.replace(/suggestion:|recommend:|tip:/i, '').trim();
         if (message) {
           suggestions.push({ type: 'suggestion', message });
