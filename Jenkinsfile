@@ -40,7 +40,7 @@ stages {
                         if (trimmedFile && fileExists(trimmedFile)) {
                             echo "Generating AI tests for: ${trimmedFile}"
                             sh """
-                                node src/generate-tests.js ${trimmedFile}
+                                node scripts/generate-tests.js ${trimmedFile}
                             """
                         }
                     }
