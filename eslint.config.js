@@ -23,12 +23,10 @@ export default [
     },
   },
   {
-    files: ['**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
+    files: ['__tests__/**/*.js'],
+    rules: {
+      'prettier/prettier': 'warn', // More lenient for auto-generated tests
+      'no-unused-vars': 'off', // Tests often have unused variables in setup
     },
   },
 ];
