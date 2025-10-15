@@ -30,3 +30,5 @@ class GitUtils {
     }
   }
 }
+
+export default GitUtils;

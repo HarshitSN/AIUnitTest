@@ -94,7 +94,7 @@ async function analyzeFile(filePath) {
           // Use our more reliable prompt function
           answer = await promptUser('\n\x1b[33m❓ Apply these changes? (y/n, default: n) \x1b[0m');
           console.log(''); // Add a newline after the prompt
-        } catch (err) {
+        } catch {
           console.error('\n⚠️  Error getting user input, defaulting to no changes');
           console.log('   Run with --no-verify to skip checks');
           console.log('   Or set NODE_ENV=test to auto-deny changes');

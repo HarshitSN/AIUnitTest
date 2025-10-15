@@ -1,5 +1,4 @@
 const { Groq } = require('groq-sdk');
-const esprima = require('esprima');
 
 class GroqAIAnalyzer {
   constructor(config) {
@@ -84,29 +83,6 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     }
 
     return codeBlocks.length > 0 ? codeBlocks : [];
-    ast.body.forEach((node) => {
-      if (node.type === 'Program') {
-        node.body.forEach((childNode) => {
-          if (
-            childNode.type === 'ExpressionStatement' &&
-            childNode.expression.type === 'Literal' &&
-            childNode.expression.value === '```'
-          ) {
-            const codeBlock = childNode.nextSibling;
-            if (codeBlock && codeBlock.type === 'BlockStatement') {
-              codeBlocks.push(
-                codeBlock.body
-                  .map((childCodeBlock) =>
-                    childCodeBlock.type === 'ExpressionStatement' ? childCodeBlock.expression : ''
-                  )
-                  .join('\n')
-              );
-            }
-          }
-        });
-      }
-    });
-    return codeBlocks;
   }
 
   extractIssues(analysis) {
@@ -135,7 +111,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
         !line.toLowerCase().includes('error:') &&
         !line.toLowerCase().includes('warning:')
       ) {
-        const suggestion = line.replace(/^[\s*\d\.-]+/, '').trim();
+        const suggestion = line.replace(/^[\s*\d.-]+/, '').trim();
         if (suggestion) {
           suggestions.push(suggestion);
         }
