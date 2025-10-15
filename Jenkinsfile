@@ -40,66 +40,7 @@ stages {
                         if (trimmedFile && fileExists(trimmedFile)) {
                             echo "Generating AI tests for: ${trimmedFile}"
                             sh """
-                                node -e "
-                                import { GroqAIAnalyzer } from './src/groq-analyzer.js';
-                                const fs = (await import('fs')).promises;
-                                const path = await import('path');
-                                const { execSync } = await import('child_process');
-
-                                const config = {
-                                    get: (key) => ({
-                                        'groq.apiKey': process.env.GROQ_API_KEY,
-                                        'groq.model': 'llama-3.1-8b-instant',
-                                    })[key],
-                                };
-
-                                const analyzer = new GroqAIAnalyzer(config);
-
-                                async function generateTests() {
-                                    try {
-                                        console.log('🔍 Reading file:', '${trimmedFile}');
-                                        const code = await fs.readFile('${trimmedFile}', 'utf8');
-                                        console.log('📝 Code length:', code.length, 'characters');
-
-                                        console.log('🤖 Calling AI to generate tests...');
-                                        const result = await analyzer.generateTests(code, '${trimmedFile}');
-                                        console.log('✨ AI response received, success:', result.success);
-
-                                        if (result.success && result.testCode) {
-                                            console.log('🧪 Test code generated, length:', result.testCode.length);
-
-                                            const testFileName = path.basename('${trimmedFile}', path.extname('${trimmedFile}')) + '.test.js';
-                                            const testFileDir = path.dirname('${trimmedFile}');
-                                            const testFilePath = path.join(testFileDir, '__tests__', testFileName);
-
-                                            await fs.mkdir(path.dirname(testFilePath), { recursive: true });
-                                            await fs.writeFile(testFilePath, result.testCode, 'utf8');
-
-                                            console.log('✅ Generated test file: ' + testFilePath);
-                                        } else {
-                                            console.error('❌ Failed to generate tests:', result.error);
-                                            if (result.fullResponse) {
-                                                console.error('🔍 AI Response:', result.fullResponse.substring(0, 1000));
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.error('💥 Error generating tests:', error.message);
-                                        console.error('🔍 Stack trace:', error.stack);
-                                    }
-                                }
-
-                                generateTests().catch(console.error);
-
-                                // Commit the generated test files
-                                try {
-                                    execSync('git add .');
-                                    execSync('git commit -m "Add AI-generated test files"');
-                                    execSync('git push origin main');
-                                    console.log('✅ Committed and pushed test files to repository');
-                                } catch (commitError) {
-                                    console.error('❌ Failed to commit test files:', commitError.message);
-                                }
-                                "
+                                node src/generate-tests.js ${trimmedFile}
                             """
                         }
                     }
