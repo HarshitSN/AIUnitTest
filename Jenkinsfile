@@ -10,9 +10,12 @@ stages {
     stage('Generate AI Tests') {
         steps {
             script {
-                // Get the list of committed JavaScript/TypeScript files
+                // Get the list of committed JavaScript/TypeScript files using git show
                 def committedFiles = sh(
-                    script: 'git diff --name-only HEAD~1 HEAD | grep -E "\\.(js|jsx|ts|tsx)$" | grep -v "__tests__/" || true',
+                    script: '''
+                        # Get files from the latest commit
+                        git show --name-only --pretty=format: HEAD | grep -E "\\.(js|jsx|ts|tsx|cjs|mjs)$" | grep -v __tests__/ || echo ""
+                    ''',
                     returnStdout: true
                 ).trim()
 

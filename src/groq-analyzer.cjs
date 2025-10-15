@@ -144,7 +144,8 @@ ${code}
         messages: [
           {
             role: 'system',
-            content: 'You are an expert JavaScript developer specializing in writing comprehensive unit tests. Generate complete, well-structured Jest tests that cover all functionality thoroughly.',
+            content:
+              'You are an expert JavaScript developer specializing in writing comprehensive unit tests. Generate complete, well-structured Jest tests that cover all functionality thoroughly.',
           },
           {
             role: 'user',
