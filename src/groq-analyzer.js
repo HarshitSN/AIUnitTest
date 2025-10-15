@@ -187,4 +187,4 @@ ${code}
   }
 }
 
-module.exports = { GroqAIAnalyzer };
+export { GroqAIAnalyzer };

@@ -35,9 +35,9 @@ stages {
                             echo "Generating AI tests for: ${trimmedFile}"
                             sh """
                                 node -e "
-                                const { GroqAIAnalyzer } = require('./src/groq-analyzer.js');
-                                const fs = require('fs').promises;
-                                const path = require('path');
+                                import { GroqAIAnalyzer } from './src/groq-analyzer.js';
+                                const fs = (await import('fs')).promises;
+                                const path = await import('path');
 
                                 const config = {
                                     get: (key) => ({
