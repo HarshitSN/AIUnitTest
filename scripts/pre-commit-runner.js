@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
-const fs = require('fs').promises;
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs/promises';
+import path from 'path';
+import { execSync } from 'child_process';
+import { GroqAIAnalyzer } from '../src/groq-analyzer.js';
+import readline from 'readline';
+import { diffLines } from 'diff';
 
 // Simple configuration for the analyzer
 const config = {
@@ -15,12 +18,10 @@ const config = {
 };
 
 // Import the GroqAIAnalyzer
-const { GroqAIAnalyzer } = require('../src/groq-analyzer');
 const analyzer = new GroqAIAnalyzer(config);
 
 // Simple synchronous prompt for better compatibility
 function promptUser(question) {
-  const readline = require('readline');
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -63,8 +64,7 @@ async function analyzeFile(filePath) {
         console.log('======================');
 
         // Show diff
-        const diff = require('diff');
-        const diffResult = diff.diffLines(stagedContent, result.improvedCode);
+        const diffResult = diffLines(stagedContent, result.improvedCode);
 
         diffResult.forEach((part) => {
           if (part.added) {
