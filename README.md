@@ -4,7 +4,7 @@ An AI-powered pre-commit hook for Node.js projects that analyzes your code chang
 
 ## Features
 
-- 🔍 AI-powered code analysis using Gemini
+- 🔍 AI-powered code analysis using Groq AI
 - 🧪 Automatic test generation
 - 📊 Web dashboard for visualizing results
 - 🔄 Git integration
@@ -36,6 +36,7 @@ yarn add --dev node-ai-precommit-tester
    ```
 
 2. Add the pre-commit hook:
+
    ```bash
    npx husky add .husky/pre-commit "npx node-ai-precommit"
    ```
@@ -59,9 +60,9 @@ Create a `.aiprecommitrc.yml` file in your project root:
 ```yaml
 # AI settings
 ai:
-  provider: gemini # or 'openai' if implemented
-  model: gemini-pro
-  apiKey: ${GEMINI_API_KEY} # or paste your API key directly
+  provider: groq # or 'openai' if implemented
+  model: llama-3.1-8b-instant
+  apiKey: ${GROQ_API_KEY} # or paste your API key directly
 
 # Test settings
 test:
@@ -88,8 +89,53 @@ exclude:
 
 ## Environment Variables
 
-- `GEMINI_API_KEY`: Your Gemini API key (required for AI features)
+- `GROQ_API_KEY`: Your Groq API key (required for AI features)
 - `AI_PRECOMMIT_DEBUG`: Set to 'true' for debug output
+
+## Jenkins Pipeline Integration
+
+This tool integrates seamlessly with Jenkins CI/CD pipelines. The pipeline will:
+
+1. Run the build process
+2. Generate AI-powered unit tests for committed files
+3. Run linting and formatting
+4. Execute the test suite
+
+### Setup in Jenkins
+
+1. **Environment Variables**: Set up the `GROQ_API_KEY` environment variable in your Jenkins pipeline:
+
+   ```groovy
+   environment {
+       GROQ_API_KEY = credentials('groq-api-key-id') // Use Jenkins credentials
+   }
+   ```
+
+2. **Pipeline Configuration**: The `Jenkinsfile` included in this repository demonstrates the integration:
+
+   ```groovy
+   pipeline {
+       stages {
+           stage('Build') {
+               steps { sh 'npm install' }
+           }
+           stage('Generate AI Tests') {
+               steps {
+                   // Automatically generates tests for committed JS/TS files
+                   script { /* AI test generation logic */ }
+               }
+           }
+           stage('Lint and Format') {
+               steps { sh 'npm run lint && npm run format' }
+           }
+           stage('Test') {
+               steps { sh 'npm test' }
+           }
+       }
+   }
+   ```
+
+3. **Webhook Setup** (Optional): Configure Git webhooks to trigger the pipeline on commits.
 
 ## Usage
 
@@ -108,7 +154,7 @@ git commit -m "Your commit message"
 
 ### CLI Options
 
-```
+```bash
 Usage: node-ai-precommit [options]
 
 Options:
@@ -135,14 +181,19 @@ Access it at `http://localhost:3000` when the pre-commit hook runs.
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    npm install
    ```
+
 3. Build the project:
+
    ```bash
    npm run build
    ```
+
 4. Link for local development:
+
    ```bash
    npm link
    ```
