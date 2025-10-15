@@ -23,9 +23,9 @@ class Config {
   getDefaultConfig() {
     return {
       ai: {
-        provider: 'google',
-        apiKey: process.env.GOOGLE_AI_API_KEY || '',
-        model: 'gemini-pro',
+        provider: 'groq',
+        apiKey: process.env.GROQ_API_KEY || '',
+        model: 'llama-3.1-8b-instant',
       },
       rules: {
         requireTests: true,
