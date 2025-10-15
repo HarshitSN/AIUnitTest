@@ -91,10 +91,9 @@ stages {
                                 generateTests().catch(console.error);
 
                                 // Commit the generated test files
-                                const commitMessage = 'Add AI-generated test files';
                                 try {
                                     execSync('git add .');
-                                    execSync(`git commit -m "${commitMessage}"`);
+                                    execSync('git commit -m "Add AI-generated test files"');
                                     execSync('git push origin main');
                                     console.log('✅ Committed and pushed test files to repository');
                                 } catch (commitError) {
