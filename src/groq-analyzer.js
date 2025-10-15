@@ -86,19 +86,18 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     return codeBlocks.length > 0 ? codeBlocks : [];
   }
 
-  extractIssues(analysis) {
-    const issues = [];
+  extractSuggestions(analysis) {
+    const suggestions = [];
     const lines = analysis.split('\n');
     for (const line of lines) {
-      if (line.toLowerCase().includes('error:') || line.toLowerCase().includes('warning:')) {
-        const severity = line.toLowerCase().includes('error:') ? 'error' : 'warning';
-        const message = line.split(':').slice(1).join(':').trim();
+      if (line.toLowerCase().includes('suggestion:') || line.toLowerCase().includes('recommend:') || line.toLowerCase().includes('tip:')) {
+        const message = line.replace(/suggestion:|recommend:|tip:/i, '').trim();
         if (message) {
-          issues.push({ severity, message });
+          suggestions.push({ type: 'suggestion', message });
         }
       }
     }
-    return issues;
+    return suggestions;
   }
 
   async generateTests(code, filePath) {
