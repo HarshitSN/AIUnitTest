@@ -1,6 +1,9 @@
 pipeline { agent any
 
-environment { PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH" }
+environment {
+    PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+    GROQ_API_KEY = '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'
+}
 stages {
     stage('Build') {
         steps {
@@ -41,7 +44,7 @@ stages {
 
                                 const config = {
                                     get: (key) => ({
-                                        'groq.apiKey': process.env.GROQ_API_KEY || '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',
+                                        'groq.apiKey': process.env.GROQ_API_KEY,
                                         'groq.model': 'llama-3.1-8b-instant',
                                     })[key],
                                 };
@@ -50,10 +53,16 @@ stages {
 
                                 async function generateTests() {
                                     try {
+                                        console.log('🔍 Reading file:', '${trimmedFile}');
                                         const code = await fs.readFile('${trimmedFile}', 'utf8');
+                                        console.log('📝 Code length:', code.length, 'characters');
+                                        
+                                        console.log('🤖 Calling AI to generate tests...');
                                         const result = await analyzer.generateTests(code, '${trimmedFile}');
+                                        console.log('✨ AI response received, success:', result.success);
 
                                         if (result.success) {
+                                            console.log('🧪 Test code generated, length:', result.testCode.length);
                                             const testFileName = path.basename('${trimmedFile}', path.extname('${trimmedFile}')) + '.test.js';
                                             const testFileDir = path.dirname('${trimmedFile}');
                                             const testFilePath = path.join(testFileDir, '__tests__', testFileName);
@@ -63,11 +72,13 @@ stages {
 
                                             console.log('✅ Generated test file: ' + testFilePath);
                                         } else {
-                                            console.error('❌ Failed to generate tests for ${trimmedFile}:', result.error);
+                                            console.error('❌ Failed to generate tests:', result.error);
+                                            console.error('🔍 Full response:', result.fullResponse);
                                             process.exit(1);
                                         }
                                     } catch (error) {
-                                        console.error('❌ Error generating tests for ${trimmedFile}:', error.message);
+                                        console.error('💥 Error generating tests:', error.message);
+                                        console.error('🔍 Stack trace:', error.stack);
                                         process.exit(1);
                                     }
                                 }
