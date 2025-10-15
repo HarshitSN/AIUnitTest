@@ -51,6 +51,18 @@ async function generateTests() {
         "const { $1 } = require('@jest/globals');"
       );
 
+      // Validate that error handling tests use correct assertions
+      testCode = testCode.replace(
+        /expect\(\(\)\s*=>\s*[^)]+\)\.toThrowError\(\)/g,
+        (match) => {
+          // Check if this is testing string multiplication (should return NaN, not throw)
+          if (match.includes('*') && (match.includes("'") || match.includes('"'))) {
+            return match.replace('toThrowError()', 'toBeNaN()').replace('(() => ', '').replace(')', '');
+          }
+          return match;
+        }
+      );
+
       await fs.mkdir(path.dirname(testFilePath), { recursive: true });
       await fs.writeFile(testFilePath, testCode, 'utf8');
 
