@@ -128,6 +128,10 @@ FORMATTING REQUIREMENTS:
 - Use ES6 import syntax (import instead of require)
 - Follow standard prettier formatting rules
 - Ensure consistent line breaks
+- Avoid using template literals in generated test code
+- Use regular string concatenation if needed
+
+IMPORTANT: When analyzing complex code with template literals, focus on testing the core functionality rather than the template syntax itself.
 
 Return ONLY the test code in the following format:
 

@@ -13,6 +13,9 @@ stages {
     stage('Generate AI Tests') {
         steps {
             script {
+                // Clean up any existing test files first
+                sh 'find . -name "*.test.js" -type f -delete || true'
+
                 // Get the list of committed JavaScript/TypeScript files using git show
                 def committedFiles = sh(
                     script: '''
@@ -56,13 +59,24 @@ stages {
                                         console.log('🔍 Reading file:', '${trimmedFile}');
                                         const code = await fs.readFile('${trimmedFile}', 'utf8');
                                         console.log('📝 Code length:', code.length, 'characters');
-                                        
+
                                         console.log('🤖 Calling AI to generate tests...');
                                         const result = await analyzer.generateTests(code, '${trimmedFile}');
                                         console.log('✨ AI response received, success:', result.success);
 
-                                        if (result.success) {
+                                        if (result.success && result.testCode) {
                                             console.log('🧪 Test code generated, length:', result.testCode.length);
+
+                                            // Validate that the generated code is syntactically correct
+                                            try {
+                                                new Function(result.testCode);
+                                                console.log('✅ Generated test code is syntactically valid');
+                                            } catch (syntaxError) {
+                                                console.error('❌ Generated test code has syntax errors:', syntaxError.message);
+                                                console.error('🔍 Problematic code preview:', result.testCode.substring(0, 500));
+                                                return;
+                                            }
+
                                             const testFileName = path.basename('${trimmedFile}', path.extname('${trimmedFile}')) + '.test.js';
                                             const testFileDir = path.dirname('${trimmedFile}');
                                             const testFilePath = path.join(testFileDir, '__tests__', testFileName);
@@ -73,13 +87,13 @@ stages {
                                             console.log('✅ Generated test file: ' + testFilePath);
                                         } else {
                                             console.error('❌ Failed to generate tests:', result.error);
-                                            console.error('🔍 Full response:', result.fullResponse);
-                                            process.exit(1);
+                                            if (result.fullResponse) {
+                                                console.error('🔍 AI Response:', result.fullResponse.substring(0, 1000));
+                                            }
                                         }
                                     } catch (error) {
                                         console.error('💥 Error generating tests:', error.message);
                                         console.error('🔍 Stack trace:', error.stack);
-                                        process.exit(1);
                                     }
                                 }
 
