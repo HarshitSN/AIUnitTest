@@ -1,3 +1,3 @@
 let a = 5;
-let b = 12;
+let b = 22;
 console.log(a * b); // Output: 50
