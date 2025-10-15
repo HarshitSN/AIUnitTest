@@ -1,5 +1,5 @@
-const { Groq } = require('groq-sdk');
-const path = require('path');
+import { Groq } from 'groq-sdk';
+import path from 'path';
 
 class GroqAIAnalyzer {
   constructor(config) {
