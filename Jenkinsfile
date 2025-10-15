@@ -1,127 +1,134 @@
-pipeline { agent any
+pipeline {
+    agent any
 
-environment {
-    PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
-    GROQ_API_KEY = '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'
-}
-stages {
-    stage('Build') {
-        steps {
-            sh 'npm install'
-        }
+    environment {
+        PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+        GROQ_API_KEY = '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'
     }
-    stage('Generate AI Tests') {
-        steps {
-            script {
-                // Clean up any existing test files first
-                sh 'find . -name "*.test.js" -type f -delete || true'
 
-                // Get the list of committed JavaScript/TypeScript files using git show
-                def committedFiles = sh(
-                    script: '''
-                        # Get files from the latest commit
-                        git show --name-only --pretty=format: HEAD | grep -E "\\.(js|jsx|ts|tsx|mjs)$" | grep -v __tests__/ || echo ""
-                    ''',
-                    returnStdout: true
-                ).trim()
+    stages {
+        stage('Build') {
+            steps {
+                sh 'npm install'
+            }
+        }
 
-                if (committedFiles) {
-                    echo "Committed files to generate tests for:"
-                    committedFiles.split('\n').each { file ->
-                        if (file.trim()) {
-                            echo "- ${file.trim()}"
+        stage('Generate AI Tests') {
+            steps {
+                script {
+                    // Clean up any existing test files first
+                    sh 'find . -name "*.test.js" -type f -delete || true'
+
+                    // Get the list of committed JavaScript/TypeScript files using git show
+                    def committedFiles = sh(
+                        script: '''
+                            # Get files from the latest commit
+                            git show --name-only --pretty=format: HEAD | grep -E "\\.(js|jsx|ts|tsx|mjs)$" | grep -v __tests__/ || echo ""
+                        ''',
+                        returnStdout: true
+                    ).trim()
+
+                    if (committedFiles) {
+                        echo "Committed files to generate tests for:"
+                        committedFiles.split('\n').each { file ->
+                            if (file.trim()) {
+                                echo "- ${file.trim()}"
+                            }
                         }
-                    }
 
-                    // Generate tests for each committed file
-                    def files = committedFiles.split('\n').findAll { it.trim() }
-                    files.each { file ->
-                        def trimmedFile = file.trim()
-                        if (trimmedFile && fileExists(trimmedFile)) {
-                            echo "Generating AI tests for: ${trimmedFile}"
-                            sh """
-                                node scripts/generate-tests.js ${trimmedFile}
-                            """
+                        // Generate tests for each committed file
+                        def files = committedFiles.split('\n').findAll { it.trim() }
+                        files.each { file ->
+                            def trimmedFile = file.trim()
+                            if (trimmedFile && fileExists(trimmedFile)) {
+                                echo "Generating AI tests for: ${trimmedFile}"
+                                sh """
+                                    node scripts/generate-tests.js ${trimmedFile}
+                                """
+                            }
                         }
+                    } else {
+                        echo "No JavaScript/TypeScript files were committed in this build."
                     }
-                } else {
-                    echo "No JavaScript/TypeScript files were committed in this build."
                 }
             }
         }
-    }
-    stage('Lint and Format') {
-        steps {
-            sh 'npm run lint'
-            sh 'npm run format'
+
+        stage('Lint and Format') {
+            steps {
+                sh 'npm run lint'
+                sh 'npm run format'
+            }
         }
-    }
-    stage('Test') {
-        steps {
-            sh 'npm test'
+
+        stage('Test') {
+            steps {
+                sh 'npm test'
+            }
         }
-    }
-    stage('Commit Generated Tests') {
-        steps {
-            script {
-                // Check if there are any changes in the __tests__ directory
-                def testChanges = sh(
-                    script: 'git diff --cached --name-only | grep -E "__tests__/" | wc -l',
-                    returnStdout: true
-                ).trim()
 
-                def untrackedTests = sh(
-                    script: 'git ls-files --others --exclude-standard | grep -E "__tests__/" | wc -l',
-                    returnStdout: true
-                ).trim()
+        stage('Commit Generated Tests') {
+            steps {
+                script {
+                    // Check if there are any changes in the __tests__ directory
+                    def testChanges = sh(
+                        script: 'git diff --cached --name-only | grep -E "__tests__/" | wc -l',
+                        returnStdout: true
+                    ).trim()
 
-                def totalTests = testChanges.toInteger() + untrackedTests.toInteger()
+                    def untrackedTests = sh(
+                        script: 'git ls-files --others --exclude-standard | grep -E "__tests__/" | wc -l',
+                        returnStdout: true
+                    ).trim()
 
-                if (totalTests > 0) {
-                    echo "📝 Found ${totalTests} test file(s) to commit..."
+                    def totalTests = testChanges.toInteger() + untrackedTests.toInteger()
 
-                    // Add any untracked test files
-                    if (untrackedTests.toInteger() > 0) {
-                        sh 'git add __tests__/'
-                    }
+                    if (totalTests > 0) {
+                        echo "📝 Found ${totalTests} test file(s) to commit..."
 
-                    // Commit with a descriptive message
-                    sh """
-                        git commit -m "🤖 Add AI-generated unit tests
+                        // Add any untracked test files
+                        if (untrackedTests.toInteger() > 0) {
+                            sh 'git add __tests__/'
+                        }
+
+                        // Commit with a descriptive message
+                        sh """
+                            git commit -m "🤖 Add AI-generated unit tests
 
 Generated by AI test generator for committed JavaScript/TypeScript files.
 
 Files processed: ${totalTests} test file(s)"
-                    """
+                        """
 
-                    echo "✅ Committed ${totalTests} test file(s) locally"
+                        echo "✅ Committed ${totalTests} test file(s) locally"
 
-                    // Try to push, but don't fail the build if push fails (common in some CI setups)
-                    try {
-                        sh 'git push origin HEAD'
-                        echo "✅ Successfully pushed generated test files to repository"
-                    } catch (Exception e) {
-                        echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
-                        echo "💡 Generated test files are committed locally and will be available in the next push"
-                        echo "   You can manually push with: git push origin HEAD"
-                        echo "   Or the next commit from your local machine will include these changes"
+                        // Try to push, but don't fail the build if push fails (common in some CI setups)
+                        try {
+                            sh 'git push origin HEAD'
+                            echo "✅ Successfully pushed generated test files to repository"
+                        } catch (Exception e) {
+                            echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
+                            echo "💡 Generated test files are committed locally and will be available in the next push"
+                            echo "   You can manually push with: git push origin HEAD"
+                            echo "   Or the next commit from your local machine will include these changes"
+                        }
+                    } else {
+                        echo "ℹ️ No new test files to commit"
                     }
-                } else {
-                    echo "ℹ️ No new test files to commit"
                 }
             }
         }
     }
-}
 
-post {
-    always {
-        echo 'Pipeline execution finished.'
-    }
-    success {
-        echo 'Pipeline succeeded!'
-    }
-    failure {
-        echo 'Pipeline failed. Check the logs for errors.'
+    post {
+        always {
+            echo 'Pipeline execution finished.'
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed. Check the logs for errors.'
+        }
     }
 }
