@@ -14,7 +14,7 @@ stages {
                 def committedFiles = sh(
                     script: '''
                         # Get files from the latest commit
-                        git show --name-only --pretty=format: HEAD | grep -E "\\.(js|jsx|ts|tsx|cjs|mjs)$" | grep -v __tests__/ || echo ""
+                        git show --name-only --pretty=format: HEAD | grep -E "\\.(js|jsx|ts|tsx|mjs)$" | grep -v __tests__/ || echo ""
                     ''',
                     returnStdout: true
                 ).trim()
@@ -35,7 +35,7 @@ stages {
                             echo "Generating AI tests for: ${trimmedFile}"
                             sh """
                                 node -e "
-                                const { GroqAIAnalyzer } = require('./src/groq-analyzer.cjs');
+                                const { GroqAIAnalyzer } = require('./src/groq-analyzer.js');
                                 const fs = require('fs').promises;
                                 const path = require('path');
 
