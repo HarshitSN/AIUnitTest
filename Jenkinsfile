@@ -93,7 +93,7 @@ stages {
                                 // Commit the generated test files
                                 try {
                                     execSync('git add .');
-                                    execSync("git commit -m 'Add AI-generated test files'");
+                                    execSync('git commit -m "Add AI-generated test files"');
                                     execSync('git push origin main');
                                     console.log('✅ Committed and pushed test files to repository');
                                 } catch (commitError) {
