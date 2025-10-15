@@ -4,4 +4,4 @@ function greet(name) {
 }
 
 // Test the function
-console.log(greet('Worlds')); // Should output: Hello, World!
+console.log(greet('Wosrlds')); // Should output: Hello, World!
