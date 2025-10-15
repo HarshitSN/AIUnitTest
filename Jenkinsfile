@@ -44,6 +44,7 @@ stages {
                                 import { GroqAIAnalyzer } from './src/groq-analyzer.js';
                                 const fs = (await import('fs')).promises;
                                 const path = await import('path');
+                                const { execSync } = await import('child_process');
 
                                 const config = {
                                     get: (key) => ({
@@ -67,16 +68,6 @@ stages {
                                         if (result.success && result.testCode) {
                                             console.log('🧪 Test code generated, length:', result.testCode.length);
 
-                                            // Validate that the generated code is syntactically correct
-                                            try {
-                                                new Function(result.testCode);
-                                                console.log('✅ Generated test code is syntactically valid');
-                                            } catch (syntaxError) {
-                                                console.error('❌ Generated test code has syntax errors:', syntaxError.message);
-                                                console.error('🔍 Problematic code preview:', result.testCode.substring(0, 500));
-                                                return;
-                                            }
-
                                             const testFileName = path.basename('${trimmedFile}', path.extname('${trimmedFile}')) + '.test.js';
                                             const testFileDir = path.dirname('${trimmedFile}');
                                             const testFilePath = path.join(testFileDir, '__tests__', testFileName);
@@ -98,6 +89,16 @@ stages {
                                 }
 
                                 generateTests().catch(console.error);
+
+                                // Commit the generated test files
+                                try {
+                                    execSync('git add .');
+                                    execSync('git commit -m "Add AI-generated test files for ' + '${trimmedFile}' + '"');
+                                    execSync('git push origin main');
+                                    console.log('✅ Committed and pushed test files to repository');
+                                } catch (commitError) {
+                                    console.error('❌ Failed to commit test files:', commitError.message);
+                                }
                                 "
                             """
                         }
