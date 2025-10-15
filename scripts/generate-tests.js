@@ -55,11 +55,11 @@ async function generateTests() {
       testCode = testCode.replace(
         /expect\(\(\)\s*=>\s*[^)]+\)\.toThrowError\(\)/g,
         (match) => {
-          // Check if this is testing string multiplication (should return NaN, not throw)
-          if (match.includes('*') && (match.includes("'") || match.includes('"'))) {
-            return match.replace('toThrowError()', 'toBeNaN()').replace('(() => ', '').replace(')', '');
-          }
-          return match;
+        // Check if this is testing string multiplication (should return NaN, not throw)
+        if (match.includes('*') && (match.includes("'") || match.includes('"'))) {
+          return match.replace('toThrowError()', 'toBeNaN()').replace('(() => ', '').replace(')', '');
+        }
+        return match;
         }
       );
 
