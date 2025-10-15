@@ -112,6 +112,7 @@ Files processed: ${totalTests} test file(s)"
             }
         }
     }
+}
 
 post {
     always {
