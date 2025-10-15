@@ -145,11 +145,26 @@ IMPORTANT REQUIREMENTS:
 - Define test variables within each test case
 - Test the LOGIC and BEHAVIOR, not specific variable names
 
-JAVASCRIPT BEHAVIOR NOTES:
-- Multiplication with strings returns NaN, not throws errors
-- Use expect(result).toBeNaN() for invalid operations
-- Use expect(result).toBeCloseTo() for floating point comparisons
-- Ensure mathematical calculations in tests are CORRECT
+JAVASCRIPT BEHAVIOR - CRITICAL:
+- null * number = 0 (returns 0, not NaN)
+- undefined * number = NaN (returns NaN)
+- 'string' * number = NaN (returns NaN, NEVER throws error)
+- NaN * number = NaN (returns NaN)
+- Always use Number.isNaN() for NaN checks, never toBeNaN()
+- Mathematical calculations must be VERIFIED as correct
+
+ERROR HANDLING RULES:
+- For null inputs: expect(result).toBe(0)
+- For undefined/NaN/string inputs: expect(Number.isNaN(result)).toBe(true)
+- For actual errors: expect(() => operation()).toThrow()
+- JavaScript multiplication NEVER throws errors for type mismatches
+- String multiplication always returns NaN, never throws
+
+NEVER GENERATE THESE PATTERNS:
+- expect(() => 'string' * number).toThrow()
+- expect(() => null * number).toThrow()
+- expect(() => undefined * number).toThrow()
+- Use Number.isNaN() instead of toBeNaN()
 
 FORMATTING REQUIREMENTS:
 - Use single quotes for strings
@@ -157,13 +172,6 @@ FORMATTING REQUIREMENTS:
 - Include trailing commas where appropriate
 - Use CommonJS require syntax: const { describe, test, expect } = require('@jest/globals');
 - Follow standard prettier formatting rules
-- Ensure consistent line breaks
-- Avoid using template literals in generated test code
-
-ERROR HANDLING:
-- For operations that return NaN: expect(result).toBeNaN()
-- For operations that should throw: expect(() => operation()).toThrow()
-- JavaScript multiplication: 'string' * number = NaN (not an error)
 
 Return ONLY the test code in the following format:
 
@@ -202,16 +210,28 @@ describe('${path.basename(filePath, '.js')}', () => {
   });
 
   describe('error handling', () => {
-    test('should return NaN for non-numeric inputs', () => {
+    test('should return 0 for null inputs', () => {
       // Arrange
-      const x = 'five';
+      const x = null;
       const y = 10;
 
       // Act
       const result = x * y;
 
       // Assert
-      expect(result).toBeNaN();
+      expect(result).toBe(0);
+    });
+
+    test('should return NaN for undefined inputs', () => {
+      // Arrange
+      const x = undefined;
+      const y = 10;
+
+      // Act
+      const result = x * y;
+
+      // Assert
+      expect(Number.isNaN(result)).toBe(true);
     });
   });
 });
@@ -227,7 +247,7 @@ ${code}
           {
             role: 'system',
             content:
-              'You are an expert JavaScript developer specializing in writing comprehensive, mathematically accurate unit tests. Generate complete Jest tests with perfect formatting, correct expected values, and proper error handling. Ensure all mathematical calculations are verified and JavaScript behavior is correctly represented (multiplication with strings returns NaN, not throws errors).',
+              'You are an expert JavaScript developer specializing in writing comprehensive, mathematically accurate unit tests. Generate complete Jest tests with perfect formatting, correct expected values, and proper error handling. CRITICAL: Understand JavaScript behavior precisely - null * number = 0, undefined * number = NaN, string * number = NaN. Always use Number.isNaN() for NaN checks. Ensure all mathematical calculations are verified as correct. Generate tests that pass without any manual corrections needed.',
           },
           {
             role: 'user',
