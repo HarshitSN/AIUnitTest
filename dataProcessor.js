@@ -384,4 +384,5 @@ class DataProcessor {
 }
 
 export default DataProcessor;
+module.exports = DataProcessor;
 export { DataProcessor };
