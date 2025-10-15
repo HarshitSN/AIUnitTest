@@ -104,12 +104,12 @@ Files processed: ${totalTests} test file(s)"
 
                         // Try to push, but don't fail the build if push fails (common in some CI setups)
                         try {
-                            sh 'git push origin HEAD'
+                            sh 'git push origin main'
                             echo "✅ Successfully pushed generated test files to repository"
                         } catch (Exception e) {
                             echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
                             echo "💡 Generated test files are committed locally and will be available in the next push"
-                            echo "   You can manually push with: git push origin HEAD"
+                            echo "   You can manually push with: git push origin main"
                             echo "   Or the next commit from your local machine will include these changes"
                         }
                     } else {
