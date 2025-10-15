@@ -104,7 +104,8 @@ Files processed: ${totalTests} test file(s)"
 
                         // Try to push, but don't fail the build if push fails (common in some CI setups)
                         try {
-                            sh 'git push origin main'
+                            // In Jenkins detached HEAD state, we need to push the current commit
+                            sh 'git push origin HEAD:main'
                             echo "✅ Successfully pushed generated test files to repository"
                         } catch (Exception e) {
                             echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
