@@ -22,14 +22,7 @@ module.exports = {
   passWithNoTests: true,
 
   // Support for ES modules in test files
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  transform: {},
 };
