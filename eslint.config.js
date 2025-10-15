@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import prettier from 'eslint-plugin-prettier';
+import globals from 'globals';
 
 export default [
   js.configs.recommended,
@@ -8,7 +9,8 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
-        node: true,
+        ...globals.node,
+        ...globals.jest,
       },
     },
     plugins: {
@@ -18,6 +20,15 @@ export default [
       'prettier/prettier': 'error',
       'no-console': 'off',
       'no-unused-vars': 'warn',
+    },
+  },
+  {
+    files: ['**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
     },
   },
 ];
