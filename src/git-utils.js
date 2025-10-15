@@ -1,3 +1,5 @@
+import { execSync } from 'child_process';
+
 class GitUtils {
   getStagedFiles() {
     try {
