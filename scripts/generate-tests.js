@@ -69,25 +69,10 @@ async function main() {
 
   await generateTests();
 
-  // Commit the generated test files
-  try {
-    execSync('git add .');
-    execSync('git commit -m "Add AI-generated test files"');
-    console.log('✅ Committed test files locally');
-
-    // Try to push, but don't fail if it doesn't work (common in CI environments)
-    try {
-      execSync('git push origin main');
-      console.log('✅ Pushed test files to remote repository');
-    } catch (pushError) {
-      console.log('⚠️ Could not push to remote repository');
-      console.log('   (this is normal in some CI environments)');
-      console.log('💡 Generated test files are committed locally');
-      console.log('   and will be available in the next push');
-    }
-  } catch (commitError) {
-    console.error('❌ Failed to commit test files:', commitError.message);
-  }
+  // Note: Git commit and push is now handled by the Jenkins pipeline
+  // This ensures proper authentication and error handling in CI environments
+  console.log('✅ Test files generated successfully');
+  console.log('💡 Git commit and push will be handled by the Jenkins pipeline');
 }
 
 main().catch(console.error);
