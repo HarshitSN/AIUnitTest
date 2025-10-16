@@ -124,6 +124,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
       }
     }
     return issues;
+  }
   generateImports(code, filePath) {
     const imports = [];
     const issues = [];
