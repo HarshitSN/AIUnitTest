@@ -92,24 +92,18 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     return suggestions;
   }
 
-  extractIssues(analysis) {
-    const issues = [];
-    const lines = analysis.split('\n');
-    for (const line of lines) {
-      if (
-        line.toLowerCase().includes('error:') ||
-        line.toLowerCase().includes('warning:') ||
-        line.toLowerCase().includes('issue:') ||
-        line.toLowerCase().includes('problem:')
-      ) {
-        const message = line.split(':').slice(1).join(':').trim();
-        if (message) {
-          const severity = line.toLowerCase().includes('error:') ? 'error' : 'warning';
-          issues.push({ severity, message });
-        }
-      }
+  extractCodeBlocks(text) {
+    if (!text) return [];
+
+    const codeBlocks = [];
+    const codeBlockRegex = /```(?:javascript|js|typescript|ts)?\n([\s\S]*?)\n```/g;
+    let match;
+
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      codeBlocks.push(match[1]);
     }
-    return issues;
+
+    return codeBlocks.length > 0 ? codeBlocks : [];
   }
 
   generateImports(code, filePath) {
