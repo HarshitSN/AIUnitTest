@@ -75,7 +75,7 @@ async function main() {
   try {
     execSync('git status', { stdio: 'pipe' });
   } catch (error) {
-    console.error('❌ Not in a git repository');
+    console.error('❌ Not in a git repository:', error.message);
     process.exit(1);
   }
 

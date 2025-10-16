@@ -124,7 +124,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
               imports.push(`const ${className} = require('../${path.basename(filePath)}');`);
             } else {
               issues.push(
-                `Class '${className}' is not exported. Add 'module.exports = ${className};' to ${path.basename(filePath)}`
+                `Class '${className}' is not exported. Add 'module.exports = ${className};' to ${fileName}`
               );
             }
           } else {
@@ -207,6 +207,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
       stateVariables: [],
       edgeCases: [],
       errorConditions: [],
+      filePath: filePath, // Store file path for debugging
     };
 
     // Analyze class definitions
@@ -314,6 +315,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
             property: match[1],
             value: match[2].trim(),
             context: assignment.trim(),
+            className: className, // Add class context for debugging
           });
         }
       });
