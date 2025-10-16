@@ -665,29 +665,37 @@ FOCUS ON ACTUAL BEHAVIOR:
       suggestions.push('Check for proper JavaScript syntax in generated tests');
     }
 
-    // Check if test structure matches code structure
-    if (analysis.classes.length > 0 && !testCode.includes('describe(')) {
-      issues.push('Generated tests missing describe blocks for classes');
-      suggestions.push('Ensure tests include describe blocks for each class');
+    // Check if test structure matches code structure (more lenient)
+    if (
+      analysis.classes.length > 0 &&
+      !testCode.includes('describe(') &&
+      !testCode.includes('test(')
+    ) {
+      issues.push('Generated tests missing test structure for classes');
+      suggestions.push('Ensure tests include describe or test blocks');
     }
 
-    // Check for method coverage
+    // Check for method coverage (more lenient)
     analysis.classes.forEach((cls) => {
       cls.methods.forEach((method) => {
-        if (!testCode.includes(`.${method.name}(`)) {
+        if (!testCode.includes(`.${method.name}(`) && !testCode.includes(`${method.name}(`)) {
           issues.push(`Missing test for method: ${cls.name}.${method.name}`);
           suggestions.push(`Add test for ${cls.name}.${method.name} method`);
         }
       });
     });
 
-    // Check if tests are actually using imported functions/classes
+    // Check if tests are actually using imported functions/classes (more lenient)
     const className = analysis.classes.length > 0 ? analysis.classes[0].name : null;
     const functionName = analysis.functions.length > 0 ? analysis.functions[0].name : null;
 
-    if (className && !testCode.includes(`new ${className}(`)) {
-      issues.push(`Tests are not using the imported ${className} class`);
-      suggestions.push(`Ensure tests create instances using 'new ${className}()'`);
+    if (
+      className &&
+      !testCode.includes(`new ${className}(`) &&
+      !testCode.includes(`${className}.`)
+    ) {
+      issues.push(`Tests may not be using the imported ${className} class properly`);
+      suggestions.push(`Ensure tests use the ${className} class or its methods`);
     }
 
     if (functionName && !testCode.includes(`${functionName}(`)) {
