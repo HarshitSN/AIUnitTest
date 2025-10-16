@@ -21,6 +21,3 @@ class Calculator {
 
 // Export the Calculator class
 module.exports = Calculator;
-
-// Example usage
-const calc = new Calculator();
