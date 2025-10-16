@@ -76,7 +76,7 @@ module.exports = Calculator;
 const calc = new Calculator();
 calc.appendNumber(5);
 calc.chooseOperation('+');
-calc.appendNumber(2);
+calc.appendNumber(3);
 calc.compute();
 
 console.log('Result:', calc.getDisplayValue()); // Output: Result: 8
