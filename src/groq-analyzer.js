@@ -107,7 +107,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     // Check if the code contains class definitions
     const classMatches = code.match(/class\s+(\w+)/g);
     if (classMatches) {
-      classMatches.forEach(match => {
+      classMatches.forEach((match) => {
         const className = match.replace('class ', '');
         // Check if this is in the same file we're testing
         if (filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
@@ -138,7 +138,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     return baseName
       .replace(/([a-z])([A-Z])/g, '$1 $2')
       .replace(/[-_]/g, ' ')
-      .replace(/\b\w/g, l => l.toUpperCase());
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
   async generateTests(code, filePath) {
