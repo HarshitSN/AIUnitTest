@@ -335,6 +335,15 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     return errors;
   }
 
+  generateTestSuiteName(filePath) {
+    const baseName = path.basename(filePath, '.js');
+    // Convert camelCase or kebab-case to Title Case for describe blocks
+    return baseName
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
   async generateTests(code, filePath) {
     if (!code || typeof code !== 'string') {
       return {
