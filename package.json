@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "AI-powered pre-commit hook for Node.js projects that analyzes code, generates tests, and improves code quality",
   "main": "src/index.js",
-  "type": "module",
   "bin": {
     "ai-precommit": "./bin/ai-precommit"
   },
