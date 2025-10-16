@@ -55,15 +55,18 @@ async function generateTests() {
       await fs.writeFile(testFilePath, testCode, 'utf8');
 
       console.log('✅ Generated test file: ' + testFilePath);
+      return true;
     } else {
       console.error('❌ Failed to generate tests:', result.error);
       if (result.fullResponse) {
         console.error('🔍 AI Response:', result.fullResponse.substring(0, 1000));
       }
+      return false;
     }
   } catch (error) {
     console.error('💥 Error generating tests:', error.message);
     console.error('🔍 Stack trace:', error.stack);
+    return false;
   }
 }
 
@@ -76,12 +79,17 @@ async function main() {
     process.exit(1);
   }
 
-  await generateTests();
+  const success = await generateTests();
 
-  // Note: Git commit and push is now handled by the Jenkins pipeline
-  // This ensures proper authentication and error handling in CI environments
-  console.log('✅ Test files generated successfully');
-  console.log('💡 Git commit and push will be handled by the Jenkins pipeline');
+  if (success) {
+    // Note: Git commit and push is now handled by the Jenkins pipeline
+    // This ensures proper authentication and error handling in CI environments
+    console.log('✅ Test files generated successfully');
+    console.log('💡 Git commit and push will be handled by the Jenkins pipeline');
+  } else {
+    console.error('❌ Test generation failed');
+    process.exit(1);
+  }
 }
 
 main().catch(console.error);
