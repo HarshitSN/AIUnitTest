@@ -583,6 +583,7 @@ Study this code carefully and understand EXACTLY what each method and function d
 3. For edge cases, test what ACTUALLY happens:
    - If the code returns early under certain conditions, test that exact condition
    - If the code modifies state in specific ways, test those exact modifications
+   - Come up with edge cases using boundary value analysis and equivalence class partitioning
 
 EXAMPLE: For a function that processes data:
 - If the function transforms input in a specific way, test that exact transformation
