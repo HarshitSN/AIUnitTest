@@ -106,11 +106,27 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     return codeBlocks.length > 0 ? codeBlocks : [];
   }
 
+  extractIssues(analysis) {
+    const issues = [];
+    const lines = analysis.split('\n');
+    for (const line of lines) {
+      if (
+        line.toLowerCase().includes('error:') ||
+        line.toLowerCase().includes('warning:') ||
+        line.toLowerCase().includes('issue:') ||
+        line.toLowerCase().includes('problem:')
+      ) {
+        const message = line.split(':').slice(1).join(':').trim();
+        if (message) {
+          const severity = line.toLowerCase().includes('error:') ? 'error' : 'warning';
+          issues.push({ severity, message });
+        }
+      }
+    }
+    return issues;
   generateImports(code, filePath) {
     const imports = [];
     const issues = [];
-
-    // Check if the code contains class definitions
     const classMatches = code.match(/class\s+(\w+)/g);
     if (classMatches) {
       classMatches.forEach((match) => {
