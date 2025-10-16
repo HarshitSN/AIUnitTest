@@ -583,7 +583,19 @@ Study this code carefully and understand EXACTLY what each method and function d
 3. For edge cases, test what ACTUALLY happens:
    - If the code returns early under certain conditions, test that exact condition
    - If the code modifies state in specific ways, test those exact modifications
-   - Come up with edge cases using boundary value analysis and equivalence class partitioning
+   - **SYSTEMATICALLY apply boundary value analysis**: Test values at the exact boundaries of input ranges, just above/below boundaries, and minimum/maximum values
+   - **Apply equivalence class partitioning**: Identify input ranges that produce similar behavior and test representative values from each class
+
+   BOUNDARY VALUE ANALYSIS REQUIREMENTS:
+   - For numeric inputs: Test minimum value, maximum value, zero, negative values, and values just above/below key boundaries
+   - For string inputs: Test empty strings, single characters, very long strings, and strings with special characters
+   - For arrays: Test empty arrays, single-element arrays, and large arrays
+   - For edge cases: Test null, undefined, and invalid input types that the code actually handles
+
+   EQUIVALENCE CLASS PARTITIONING REQUIREMENTS:
+   - **Valid inputs**: Identify ranges of inputs that produce the same behavior pattern
+   - **Invalid inputs**: Identify ranges of inputs that trigger the same error handling
+   - **Boundary inputs**: Test values that separate different behavioral classes
 
 EXAMPLE: For a function that processes data:
 - If the function transforms input in a specific way, test that exact transformation
@@ -615,8 +627,18 @@ const { describe, test, expect } = require('@jest/globals');
 // Import the ${className || functionName} ${className ? 'class' : 'function'}
 const ${className || functionName} = require('../${path.basename(filePath)}');
 
-describe('${this.generateTestSuiteName(filePath)}', () => {
-  // Test the ${className || functionName} ${className ? 'class' : 'function'} that was imported above
+  describe('boundary value analysis', () => {
+    // Test values at exact boundaries, just above/below boundaries, min/max values
+    // For numeric inputs: test minimum, maximum, zero, negative boundaries
+    // For each boundary, test the exact behavior that occurs in the code
+  });
+
+  describe('equivalence class partitioning', () => {
+    // Test representative values from each input class that produces similar behavior
+    // Valid inputs: test values that follow the same execution path
+    // Invalid inputs: test values that trigger the same error handling
+    // Boundary inputs: test values that separate different behavioral classes
+  });
 
   describe('exact behavior verification', () => {
     // Test methods based on ACTUAL code analysis above
