@@ -6,7 +6,8 @@ const { execSync } = require('child_process');
 async function mergeTestFile(testFilePath, newTestCode) {
   try {
     // Check if file exists
-    const fileExists = await fs.access(testFilePath)
+    const fileExists = await fs
+      .access(testFilePath)
       .then(() => true)
       .catch(() => false);
 
@@ -39,7 +40,9 @@ async function mergeTestFile(testFilePath, newTestCode) {
 
     // Write the updated file
     await fs.writeFile(testFilePath, updatedContent, 'utf8');
-    console.log(`✅ Updated test file: ${testFilePath} (${changes.testsToAdd.length} new tests added)`);
+    console.log(
+      `✅ Updated test file: ${testFilePath} (${changes.testsToAdd.length} new tests added)`
+    );
 
     return true;
   } catch (error) {
@@ -54,7 +57,7 @@ function parseExistingTests(content) {
     describeBlocks: [],
     testCases: [],
     imports: [],
-    setup: []
+    setup: [],
   };
 
   const lines = content.split('\n');
@@ -67,7 +70,12 @@ function parseExistingTests(content) {
       tests.imports.push(line);
     }
     // Extract setup code (before describe blocks)
-    else if (!line.startsWith('describe') && !line.startsWith('test') && line && tests.describeBlocks.length === 0) {
+    else if (
+      !line.startsWith('describe') &&
+      !line.startsWith('test') &&
+      line &&
+      tests.describeBlocks.length === 0
+    ) {
       tests.setup.push(line);
     }
     // Extract describe blocks
@@ -86,7 +94,7 @@ function extractDescribeBlock(lines, startIndex) {
   const block = {
     name: '',
     content: [],
-    lines: []
+    lines: [],
   };
 
   let braceCount = 0;
@@ -124,12 +132,12 @@ function compareTests(existing, newTests) {
   const changes = {
     testsToAdd: [],
     testsToUpdate: [],
-    blocksToAdd: []
+    blocksToAdd: [],
   };
 
   // Find new describe blocks
   for (const newBlock of newTests.describeBlocks) {
-    const existingBlock = existing.describeBlocks.find(block => block.name === newBlock.name);
+    const existingBlock = existing.describeBlocks.find((block) => block.name === newBlock.name);
 
     if (!existingBlock) {
       // New describe block
