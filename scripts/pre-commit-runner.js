@@ -3,7 +3,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
-import { GroqAIAnalyzer } from '../src/groq-analyzer.js';
+import GroqAIAnalyzer from '../src/groq-analyzer.js';
 import readline from 'readline';
 import { diffLines } from 'diff';
 
