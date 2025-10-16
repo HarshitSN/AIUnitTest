@@ -32,7 +32,10 @@ class Calculator {
   compute() {
     const prev = parseFloat(this.previousValue);
     const curr = parseFloat(this.currentValue);
-    if (isNaN(prev) || isNaN(curr)) return;
+    if (isNaN(prev) || isNaN(curr)) {
+      this.clear(); // Clear state when NaN is encountered
+      return;
+    }
 
     let computation;
     switch (this.operation) {
@@ -67,7 +70,7 @@ class Calculator {
 const calc = new Calculator();
 calc.appendNumber(10);
 calc.chooseOperation('+');
-calc.appendNumber(2);
+calc.appendNumber(4);
 calc.compute();
 
 console.log('Result:', calc.getDisplayValue()); // Output: Result: 8
