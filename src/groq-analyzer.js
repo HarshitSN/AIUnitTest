@@ -104,6 +104,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
   generateImports(code, filePath) {
     const imports = [];
     const issues = [];
+    const isExported = /\bmodule\.exports\s*=|exports\./.test(code);
 
     // Check if the code contains class definitions
     const classMatches = code.match(/class\s+(\w+)/g);
@@ -113,13 +114,9 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
         // Check if this is in the same file we're testing
         if (filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
           const fileName = path.basename(filePath, '.js');
-          // Import the class if it's defined in this file (more flexible matching)
-          if (
-            className.toLowerCase().includes(fileName.toLowerCase()) ||
-            fileName.toLowerCase().includes(className.toLowerCase()) ||
-            className === 'DataProcessor' ||
-            className.toLowerCase().includes('test') // For test files
-          ) {
+
+          // For exported classes - use normal import
+          if (isExported) {
             // Check if the class is exported
             const exportPattern = new RegExp(
               `module\\.exports\\s*=\\s*${className}|exports\\.${className}\\s*=\\s*${className}`
@@ -130,6 +127,10 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
               );
             }
             imports.push(`const ${className} = require('../${path.basename(filePath)}');`);
+          } else {
+            // For non-exported classes - test them differently
+            imports.push(`// Testing non-exported class: ${className}`);
+            imports.push(`// Note: This file doesn't export ${className}, testing in global scope`);
           }
         }
       });
@@ -146,10 +147,9 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
           .replace(/[\s]*\([^)]*\)[\s]*{/, '');
         if (functionName && filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
           const fileName = path.basename(filePath, '.js');
-          if (
-            functionName.toLowerCase().includes(fileName.toLowerCase()) ||
-            fileName.toLowerCase().includes(functionName.toLowerCase())
-          ) {
+
+          // For exported functions - use normal import
+          if (isExported) {
             // Check if the function is exported
             const exportPattern = new RegExp(
               `module\\.exports\\s*=\\s*${functionName}|exports\\.${functionName}\\s*=\\s*${functionName}`
@@ -160,6 +160,12 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
               );
             }
             imports.push(`const ${functionName} = require('../${path.basename(filePath)}');`);
+          } else {
+            // For non-exported functions - test them differently
+            imports.push(`// Testing non-exported function: ${functionName}`);
+            imports.push(
+              `// Note: This file doesn't export ${functionName}, testing in global scope`
+            );
           }
         }
       });
@@ -167,12 +173,12 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
 
     // Check for fs imports (for config.js)
     if (code.includes('fs.') || code.includes('fs.readFile') || code.includes('fs.writeFile')) {
-      imports.push("const fs = require('fs');");
+      imports.push("import fs from 'fs';");
     }
 
     // Check for path imports
     if (code.includes('path.') || code.includes('path.join') || code.includes('path.dirname')) {
-      imports.push("const path = require('path');");
+      imports.push("import path from 'path';");
     }
 
     // Store issues for later reporting
@@ -429,11 +435,14 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
         error: error.message,
         file: filePath,
       };
-    }
-  }
+    } // Close catch block
+  } // Close generateTests method
 
   createDetailedPrompt(code, filePath, analysis) {
-    let prompt = `Generate comprehensive unit tests for this JavaScript code:
+    const isExported = /\bmodule\.exports\s*=|exports\./.test(code);
+
+    if (!isExported) {
+      return `Generate comprehensive unit tests for this JavaScript code:
 
 \`\`\`javascript
 ${code}
@@ -442,47 +451,22 @@ ${code}
 CODE ANALYSIS:
 ${JSON.stringify(analysis, null, 2)}
 
-IMPORTANT REQUIREMENTS:
-1. Use Jest testing framework with CommonJS require syntax
-2. Test EXACTLY what the code does - no assumptions
-3. For each method, test the specific behavior observed in the analysis
-4. Use descriptive test names that reflect actual functionality
-5. Test edge cases that actually exist in the code
-6. Test error conditions as they are implemented
-7. Follow standard prettier formatting rules
+IMPORTANT: This code does NOT export any modules. To enable proper testing, you have two options:
 
-Based on the code analysis above, generate tests for:
+OPTION 1 - Add exports (RECOMMENDED):
+Add 'module.exports = YourClassName;' at the end of the file, then generate tests normally.
 
-`;
+OPTION 2 - Alternative testing approach:
+Since this code doesn't export modules, the tests would need to reference the classes/functions directly.
 
-    // Add specific test requirements based on analysis
-    if (analysis.classes.length > 0) {
-      analysis.classes.forEach((cls) => {
-        prompt += `\nCLASS: ${cls.name}\n`;
-        if (cls.constructor) {
-          prompt += `- Constructor with params: ${cls.constructor.params.join(', ')}\n`;
-        }
-        cls.methods.forEach((method) => {
-          prompt += `- Method: ${method.name}(${method.params.join(', ')})\n`;
-          if (method.stateChanges.length > 0) {
-            prompt += `  - State changes: ${method.stateChanges.map((s) => `${s.property} = ${s.value}`).join(', ')}\n`;
-          }
-          if (method.errorHandling.length > 0) {
-            prompt += `  - Error handling: ${method.errorHandling.map((e) => e.type).join(', ')}\n`;
-          }
-        });
-      });
-    }
-
-    prompt += `
-
-Return ONLY the test code in this format:
+For now, I'll generate tests assuming exports will be added. If you prefer not to modify the original file, the tests will need manual adjustment.
 
 \`\`\`javascript
 // Test file for: ${path.basename(filePath)}
 // Generated by AI Test Generator
+// NOTE: This file doesn't export modules. Add 'module.exports = Calculator;' to enable these tests.
 
-const { describe, test, expect } = require('@jest/globals');
+import { describe, test, expect } from '@jest/globals';
 // Add necessary imports based on the code being tested
 ${this.generateImports(code, filePath)}
 
@@ -501,8 +485,78 @@ describe('${this.generateTestSuiteName(filePath)}', () => {
   });
 });
 \`\`\``;
+    }
 
-    return prompt;
+    // Traditional exported module testing
+    return `Generate comprehensive unit tests for this JavaScript code:
+
+\`\`\`javascript
+${code}
+\`\`\`
+
+CODE ANALYSIS:
+${JSON.stringify(analysis, null, 2)}
+
+IMPORTANT REQUIREMENTS:
+1. Use Jest testing framework with CommonJS require syntax
+2. Test EXACTLY what the code does - no assumptions
+3. For each method, test the specific behavior observed in the analysis
+4. Use descriptive test names that reflect actual functionality
+5. Test edge cases that actually exist in the code
+6. Test error conditions as they are implemented
+7. Follow standard prettier formatting rules
+
+This code exports modules, so generate tests that import and test the exported functionality:
+
+\`\`\`javascript
+// Test file for: ${path.basename(filePath)}
+// Generated by AI Test Generator
+
+import { describe, test, expect } from '@jest/globals';
+// Add necessary imports based on the code being tested
+${this.generateImports(code, filePath)}
+
+describe('${this.generateTestSuiteName(filePath)}', () => {
+  // Tests based on actual code analysis above
+  describe('core functionality', () => {
+    // Add tests for actual methods and their behaviors
+  });
+
+  describe('edge cases', () => {
+    // Add tests for actual edge cases in the code
+  });
+
+  describe('error handling', () => {
+    // Add tests for actual error conditions in the code
+  });
+\`\`\``;
+  }
+  extractCodeForInlineTesting(code) {
+    // Extract class and function definitions for inline testing
+    const lines = code.split('\n');
+    const extractedLines = [];
+
+    lines.forEach((line, index) => {
+      // Include class definitions
+      if (line.trim().startsWith('class ')) {
+        // Find the end of the class
+        let braceCount = 0;
+        let inClass = false;
+        for (let i = index; i < lines.length; i++) {
+          extractedLines.push(lines[i]);
+          if (lines[i].includes('{')) braceCount++;
+          if (lines[i].includes('}')) braceCount--;
+          if (braceCount === 0 && inClass) break;
+          if (lines[i].trim().startsWith('class ')) inClass = true;
+        }
+      }
+      // Include function definitions (but not arrow functions)
+      else if (line.match(/^(?!.*=>.*)[ \t]*function\s+\w+/) && !line.includes('module.exports')) {
+        extractedLines.push(line);
+      }
+    });
+
+    return extractedLines.join('\n').trim();
   }
 
   validateGeneratedTests(testCode, analysis) {
@@ -539,6 +593,6 @@ describe('${this.generateTestSuiteName(filePath)}', () => {
       suggestions,
     };
   }
-}
+} // Close class GroqAIAnalyzer
 
-export { GroqAIAnalyzer };
+export default GroqAIAnalyzer;
