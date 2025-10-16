@@ -13,7 +13,7 @@ class Calculator {
 
   divide(a, b) {
     if (b === 0) {
-      return 'error: Division by Zero';
+      return 'error: division by Zero';
     }
     return a / b;
   }
