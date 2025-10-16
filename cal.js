@@ -13,6 +13,12 @@ class Calculator {
 
   // Append a number or decimal
   appendNumber(number) {
+    // Handle edge cases: null, undefined, NaN
+    if (number === null || number === undefined || (typeof number === 'number' && isNaN(number))) {
+      this.currentValue = '';
+      return;
+    }
+
     if (number === '.' && this.currentValue.includes('.')) return;
     this.currentValue = this.currentValue.toString() + number.toString();
   }
@@ -62,6 +68,9 @@ class Calculator {
     return this.currentValue;
   }
 }
+
+// Export the Calculator class
+module.exports = Calculator;
 
 // Example usage
 const calc = new Calculator();

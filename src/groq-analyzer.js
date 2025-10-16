@@ -104,7 +104,6 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
   generateImports(code, filePath) {
     const imports = [];
     const issues = [];
-    const isExported = /\bmodule\.exports\s*=|exports\./.test(code);
 
     // Check if the code contains class definitions
     const classMatches = code.match(/class\s+(\w+)/g);
@@ -116,21 +115,22 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
           const fileName = path.basename(filePath, '.js');
 
           // For exported classes - use normal import
-          if (isExported) {
-            // Check if the class is exported
+          if (/\bmodule\.exports\s*=|exports\./.test(code)) {
+            // Check if the class is actually exported
             const exportPattern = new RegExp(
-              `module\\.exports\\s*=\\s*${className}|exports\\.${className}\\s*=\\s*${className}`
+              `module\\.exports\\s*=\\s*${className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b|exports\\.${className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=\\s*${className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
             );
-            if (!exportPattern.test(code)) {
+            if (exportPattern.test(code)) {
+              imports.push(`const ${className} = require('../${path.basename(filePath)}');`);
+            } else {
               issues.push(
                 `Class '${className}' is not exported. Add 'module.exports = ${className};' to ${path.basename(filePath)}`
               );
             }
-            imports.push(`const ${className} = require('../${path.basename(filePath)}');`);
           } else {
-            // For non-exported classes - test them differently
-            imports.push(`// Testing non-exported class: ${className}`);
-            imports.push(`// Note: This file doesn't export ${className}, testing in global scope`);
+            issues.push(
+              `Class '${className}' is not exported. Add 'module.exports = ${className};' to ${path.basename(filePath)}`
+            );
           }
         }
       });
@@ -138,47 +138,59 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
 
     // Check for function definitions (but not arrow functions or methods)
     const functionMatches = code.match(
-      /^(?!.*=>.*)[ \t]*function\s+(\w+)[\s]*\(|^(?!.*=>.*)[ \t]*(\w+)[\s]*\([^)]*\)[\s]*{/gm
+      /^(?!.*=>.*)[ \t]*function\s+(\w+)[\s]*\(|^(?!.*=>.*)[ \t]*(\w+)[\s]*\([^)]*\)[\s]*\{/gm
     );
     if (functionMatches) {
+      const exportedFunctions = [];
+
       functionMatches.forEach((match) => {
         const functionName = match
           .replace(/^(?!.*=>.*)[ \t]*function\s+/, '')
-          .replace(/[\s]*\([^)]*\)[\s]*{/, '');
-        if (functionName && filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
-          const fileName = path.basename(filePath, '.js');
+          .replace(/[\s]*\([^)]*\)[\s]*\{/, '')
+          .replace(/^(?!.*=>.*)[ \t]*(\w+)[\s]*\([^)]*\)[\s]*\{/, '$1')
+          .replace(/\($/, ''); // Remove trailing parenthesis
 
-          // For exported functions - use normal import
-          if (isExported) {
-            // Check if the function is exported
-            const exportPattern = new RegExp(
-              `module\\.exports\\s*=\\s*${functionName}|exports\\.${functionName}\\s*=\\s*${functionName}`
-            );
-            if (!exportPattern.test(code)) {
-              issues.push(
-                `Function '${functionName}' is not exported. Add 'module.exports = ${functionName};' to ${path.basename(filePath)}`
-              );
-            }
-            imports.push(`const ${functionName} = require('../${path.basename(filePath)}');`);
+        if (functionName && filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
+          // Check if this function is exported (either individually or in an object)
+          const singleExportPattern = new RegExp(
+            `module\\.exports\\s*=\\s*${functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b|exports\\.${functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=\\s*${functionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
+          );
+
+          const objectExportPattern = /module\.exports\s*=\s*\{[\s\S]*\b\w+\s*,[\s\S]*\}/;
+
+          if (singleExportPattern.test(code) || objectExportPattern.test(code)) {
+            exportedFunctions.push(functionName);
           } else {
-            // For non-exported functions - test them differently
-            imports.push(`// Testing non-exported function: ${functionName}`);
-            imports.push(
-              `// Note: This file doesn't export ${functionName}, testing in global scope`
+            issues.push(
+              `Function '${functionName}' is not exported. Add it to module.exports in ${path.basename(filePath)}`
             );
           }
         }
       });
+
+      // Generate appropriate import based on export style
+      if (exportedFunctions.length > 0) {
+        if (exportedFunctions.length === 1) {
+          // Single function export
+          imports.push(`const ${exportedFunctions[0]} = require('../${path.basename(filePath)}');`);
+        } else {
+          // Multiple functions - object destructuring
+          const destructuredImports = exportedFunctions.map((fn) => fn).join(', ');
+          imports.push(
+            `const { ${destructuredImports} } = require('../${path.basename(filePath)}');`
+          );
+        }
+      }
     }
 
     // Check for fs imports (for config.js)
     if (code.includes('fs.') || code.includes('fs.readFile') || code.includes('fs.writeFile')) {
-      imports.push("import fs from 'fs';");
+      imports.push("const fs = require('fs');");
     }
 
     // Check for path imports
     if (code.includes('path.') || code.includes('path.join') || code.includes('path.dirname')) {
-      imports.push("import path from 'path';");
+      imports.push("const path = require('path');");
     }
 
     // Store issues for later reporting
@@ -440,7 +452,8 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
 
   createDetailedPrompt(code, filePath, analysis) {
     const isExported = /\bmodule\.exports\s*=|exports\./.test(code);
-    const className = analysis.classes.length > 0 ? analysis.classes[0].name : 'Calculator';
+    const className = analysis.classes.length > 0 ? analysis.classes[0].name : 'UnknownClass';
+    const functionName = analysis.functions.length > 0 ? analysis.functions[0].name : null;
 
     if (!isExported) {
       return `Generate comprehensive unit tests for this JavaScript code:
@@ -455,7 +468,7 @@ ${JSON.stringify(analysis, null, 2)}
 IMPORTANT: This code does NOT export any modules. To enable proper testing, you have two options:
 
 OPTION 1 - Add exports (RECOMMENDED):
-Add 'module.exports = YourClassName;' at the end of the file, then generate tests normally.
+Add 'module.exports = ${className || 'YourClassName'};' at the end of the file, then generate tests normally.
 
 OPTION 2 - Alternative testing approach:
 Since this code doesn't export modules, the tests would need to reference the classes/functions directly.
@@ -463,25 +476,30 @@ Since this code doesn't export modules, the tests would need to reference the cl
 For now, I'll generate tests assuming exports will be added. If you prefer not to modify the original file, the tests will need manual adjustment.
 
 IMPORTANT ADDITIONAL REQUIREMENTS:
-8. Use the variable name "${className}" (exactly as imported above) when creating instances in tests
-9. Do NOT use different variable names like "${className.toLowerCase()}" - always use "${className}"
-10. The imported variable "${className}" refers to the ${className} class from the source file
+1. The file does NOT export anything - it must be modified to add exports before these tests will work
+2. After adding exports, the tests below will work correctly
+3. Use exactly these variable names when creating instances in tests
 
 \`\`\`javascript
 // Test file for: ${path.basename(filePath)}
 // Generated by AI Test Generator
-// NOTE: This file doesn't export modules. Add 'module.exports = ${className};' to enable these tests.
+// NOTE: This file doesn't export modules. Add 'module.exports = ${className || 'YourClassName'};' to enable these tests.
 
 const { describe, test, expect } = require('@jest/globals');
-// Import the ${className} class - use '${className}' as the variable name
-const ${className} = require('../${path.basename(filePath)}');
+// Import the ${className || 'YourClassName'} class - use '${className || 'YourClassName'}' as the variable name
+const ${className || 'YourClassName'} = require('../${path.basename(filePath)}');
 
 describe('${this.generateTestSuiteName(filePath)}', () => {
-  // Test the ${className} class that was imported above
-  // Use '${className}' (uppercase) as the variable name throughout the tests
+  // Test the ${className || 'YourClassName'} class that was imported above
+  // Use '${className || 'YourClassName'}' (uppercase) as the variable name throughout the tests
 
   describe('core functionality', () => {
-    // Test basic ${className.toLowerCase()} operations
+    // Test basic ${className ? className.toLowerCase() : 'class'} operations
+    test('should perform basic functionality', () => {
+      // Arrange - set up test data
+      // Act - call the method/function being tested
+      // Assert - verify the expected behavior
+    });
   });
 
   describe('edge cases', () => {
@@ -492,7 +510,7 @@ describe('${this.generateTestSuiteName(filePath)}', () => {
     }
 
     // Traditional exported module testing
-    return `Generate comprehensive unit tests for this JavaScript code:
+    let prompt = `Generate comprehensive unit tests for this JavaScript code:
 
 \`\`\`javascript
 ${code}
@@ -508,25 +526,33 @@ IMPORTANT REQUIREMENTS:
 4. Use descriptive test names that reflect actual functionality
 5. Test edge cases that actually exist in the code
 6. Test error conditions as they are implemented
-IMPORTANT ADDITIONAL REQUIREMENTS:
-8. Use the variable name "${className}" (exactly as imported above) when creating instances in tests
-9. Do NOT use different variable names like "${className.toLowerCase()}" - always use "${className}"
-10. The imported variable "${className}" refers to the ${className} class from the source file
+
+CRITICAL INSTRUCTIONS:
+7. Use the EXACT variable name "${className || functionName}" when creating instances in tests
+8. Do NOT use different variable names like "${className ? className.toLowerCase() : functionName?.toLowerCase()}" - always use "${className || functionName}"
+9. The imported variable "${className || functionName}" refers to the ${className ? 'class' : 'function'} from the source file
+10. Test the imported ${className ? 'class' : 'function'} - do NOT test raw JavaScript operations
 
 \`\`\`javascript
 // Test file for: ${path.basename(filePath)}
 // Generated by AI Test Generator
 
 const { describe, test, expect } = require('@jest/globals');
-// Import the ${className} class - use '${className}' as the variable name
-const ${className} = require('../${path.basename(filePath)}');
+// Import the ${className || functionName} ${className ? 'class' : 'function'} - use '${className || functionName}' as the variable name
+const ${className || functionName} = require('../${path.basename(filePath)}');
 
 describe('${this.generateTestSuiteName(filePath)}', () => {
-  // Test the ${className} class that was imported above
-  // Use '${className}' (uppercase) as the variable name throughout the tests
+  // Test the ${className || functionName} ${className ? 'class' : 'function'} that was imported above
+  // Use '${className || functionName}' as the variable name throughout the tests
 
   describe('core functionality', () => {
-    // Test basic ${className.toLowerCase()} operations
+    // Test basic ${className ? className.toLowerCase() : functionName?.toLowerCase()} operations
+    test('should perform basic functionality', () => {
+      // Example test structure:
+      // Arrange - set up test data
+      // Act - call the imported ${className ? 'class' : 'function'}
+      // Assert - verify the expected behavior
+    });
   });
 
   describe('edge cases', () => {
@@ -534,6 +560,8 @@ describe('${this.generateTestSuiteName(filePath)}', () => {
   });
 });
 \`\`\``;
+
+    return prompt;
   }
   extractCodeForInlineTesting(code) {
     // Extract class and function definitions for inline testing
@@ -590,6 +618,26 @@ describe('${this.generateTestSuiteName(filePath)}', () => {
         }
       });
     });
+
+    // Check if tests are actually using imported functions/classes
+    const className = analysis.classes.length > 0 ? analysis.classes[0].name : null;
+    const functionName = analysis.functions.length > 0 ? analysis.functions[0].name : null;
+
+    if (className && !testCode.includes(`new ${className}(`)) {
+      issues.push(`Tests are not using the imported ${className} class`);
+      suggestions.push(`Ensure tests create instances using 'new ${className}()'`);
+    }
+
+    if (functionName && !testCode.includes(`${functionName}(`)) {
+      issues.push(`Tests are not using the imported ${functionName} function`);
+      suggestions.push(`Ensure tests call the function using '${functionName}()'`);
+    }
+
+    // Check for raw operations that should use the imported code
+    if (testCode.includes(' * ') && className === 'Calculator') {
+      issues.push('Tests are using raw multiplication instead of Calculator class');
+      suggestions.push('Use the Calculator class methods instead of raw operations');
+    }
 
     return {
       isValid: issues.length === 0,
