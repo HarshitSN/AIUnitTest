@@ -3,6 +3,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { execSync } = require('child_process');
+
 async function mergeTestFile(testFilePath, newTestCode) {
   try {
     // Check if file exists
@@ -30,7 +31,24 @@ async function mergeTestFile(testFilePath, newTestCode) {
     // Compare and identify changes needed
     const changes = compareTests(existingTests, newTests);
 
-    if (changes.testsToAdd.length === 0 && changes.testsToUpdate.length === 0) {
+    // If no describe blocks to add but we have new test content, check if we need to add it
+    if (changes.blocksToAdd.length === 0 && newTestCode.length > existingContent.length) {
+      console.log('📊 New test content detected, checking if updates are needed...');
+
+      // Simple heuristic: if new content is significantly larger, likely has new tests
+      if (newTestCode.length > existingContent.length * 1.1) {
+        console.log('🔄 Significant new content detected, updating test file...');
+        await fs.writeFile(testFilePath, newTestCode, 'utf8');
+        console.log(`✅ Updated test file with new content: ${testFilePath}`);
+        return true;
+      }
+    }
+
+    if (
+      changes.testsToAdd.length === 0 &&
+      changes.testsToUpdate.length === 0 &&
+      changes.blocksToAdd.length === 0
+    ) {
       console.log('✅ No changes needed for test file: ' + testFilePath);
       return true;
     }
@@ -58,6 +76,7 @@ function parseExistingTests(content) {
     testCases: [],
     imports: [],
     setup: [],
+    testedFunctions: new Set(), // Track which functions are being tested
   };
 
   const lines = content.split('\n');
@@ -82,7 +101,28 @@ function parseExistingTests(content) {
     else if (line.startsWith('describe(')) {
       const block = extractDescribeBlock(lines, i);
       tests.describeBlocks.push(block);
+
+      // Extract function names being tested in this block
+      for (const testLine of block.content) {
+        if (testLine.includes('.')) {
+          const match = testLine.match(/(\w+)\./);
+          if (match) {
+            tests.testedFunctions.add(match[1]);
+          }
+        }
+      }
+
       i += block.lines.length - 1; // Skip the lines we processed
+    }
+    // Extract test cases that might test standalone functions
+    else if (line.startsWith('test(') || line.startsWith('it(')) {
+      tests.testCases.push(line);
+
+      // Look for function calls in test cases
+      const functionCallMatch = line.match(/(\w+)\s*\(/);
+      if (functionCallMatch) {
+        tests.testedFunctions.add(functionCallMatch[1]);
+      }
     }
   }
 
@@ -133,6 +173,7 @@ function compareTests(existing, newTests) {
     testsToAdd: [],
     testsToUpdate: [],
     blocksToAdd: [],
+    standaloneFunctionsToTest: [],
   };
 
   // Find new describe blocks
@@ -147,6 +188,11 @@ function compareTests(existing, newTests) {
       // For now, we'll assume the AI generates complete blocks
     }
   }
+
+  // Check for standalone functions that need testing
+  // We need to analyze the source code to find functions that aren't tested
+  // For now, we'll rely on the AI to generate complete test suites
+  // But we can add logic here to detect missing function tests
 
   return changes;
 }
