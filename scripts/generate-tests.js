@@ -31,6 +31,15 @@ async function mergeTestFile(testFilePath, newTestCode) {
     // Compare and identify changes needed
     const changes = compareTests(existingTests, newTests);
 
+    // Additional check: analyze source code for missing function tests
+    const sourceAnalysis = await analyzeSourceForMissingTests(testFilePath, newTestCode);
+    if (sourceAnalysis.hasMissingTests) {
+      console.log('🔍 Source code analysis detected missing tests, updating...');
+      await fs.writeFile(testFilePath, newTestCode, 'utf8');
+      console.log(`✅ Updated test file with missing function tests: ${testFilePath}`);
+      return true;
+    }
+
     // If no describe blocks to add but we have new test content, check if we need to add it
     if (changes.blocksToAdd.length === 0 && newTestCode.length > existingContent.length) {
       console.log('📊 New test content detected, checking if updates are needed...');
@@ -66,6 +75,75 @@ async function mergeTestFile(testFilePath, newTestCode) {
   } catch (error) {
     console.error('❌ Error merging test file:', error.message);
     return false;
+  }
+}
+
+// Analyze source code to detect functions that need testing
+async function analyzeSourceForMissingTests(testFilePath, newTestCode) {
+  try {
+    // Extract the source file path from the test file path
+    const sourceFileName = path.basename(testFilePath, '.test.js') + '.js';
+    const sourceFileDir = path.dirname(testFilePath).replace('/__tests__', '');
+    const sourceFilePath = path.join(sourceFileDir, sourceFileName);
+
+    // Read source file
+    const sourceContent = await fs.readFile(sourceFilePath, 'utf8');
+
+    // Find all functions in source code
+    const sourceFunctions = new Set();
+
+    // Find class methods
+    const classMatches = sourceContent.match(/class (\w+).*?\{([\s\S]*?)\}/g) || [];
+    for (const classMatch of classMatches) {
+      const className = classMatch.match(/class (\w+)/)[1];
+      const methods = classMatch.match(/(\w+)\s*\([^)]*\)\s*\{/g) || [];
+      methods.forEach((method) => {
+        const methodName = method.match(/(\w+)\s*\(/)[1];
+        if (methodName !== 'constructor') {
+          sourceFunctions.add(`${className}.${methodName}`);
+        }
+      });
+    }
+
+    // Find standalone functions
+    const standaloneMatches = sourceContent.match(/function (\w+)\s*\(/g) || [];
+    standaloneMatches.forEach((match) => {
+      const funcName = match.match(/function (\w+)/)[1];
+      sourceFunctions.add(funcName);
+    });
+
+    // Find functions being tested in the new test code
+    const testedFunctions = new Set();
+    const testLines = newTestCode.split('\n');
+    for (const line of testLines) {
+      if (line.includes('.')) {
+        const match = line.match(/(\w+)\./);
+        if (match) {
+          testedFunctions.add(match[1]);
+        }
+      } else if (line.includes('multiply(') && !line.includes('calculator')) {
+        testedFunctions.add('multiply');
+      }
+    }
+
+    // Check if there are source functions not covered by tests
+    const missingTests = [];
+    for (const func of sourceFunctions) {
+      if (!testedFunctions.has(func.includes('.') ? func.split('.')[0] : func)) {
+        missingTests.push(func);
+      }
+    }
+
+    return {
+      hasMissingTests: missingTests.length > 0,
+      missingTests,
+      sourceFunctions: Array.from(sourceFunctions),
+      testedFunctions: Array.from(testedFunctions),
+    };
+
+  } catch (error) {
+    console.error('❌ Error analyzing source for missing tests:', error.message);
+    return { hasMissingTests: false, missingTests: [] };
   }
 }
 
