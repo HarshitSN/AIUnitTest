@@ -5,7 +5,7 @@ function multiply(a, b) {
 
 // Example usage
 let a = 5;
-let b = 10;
+let b = 1;
 console.log(multiply(a, b)); // Output: 50
 
 // Export the function for testing
