@@ -103,6 +103,7 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
 
   generateImports(code, filePath) {
     const imports = [];
+    const issues = [];
 
     // Check if the code contains class definitions
     const classMatches = code.match(/class\s+(\w+)/g);
@@ -112,8 +113,53 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
         // Check if this is in the same file we're testing
         if (filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
           const fileName = path.basename(filePath, '.js');
-          if (className === fileName || className === 'DataProcessor') {
+          // Import the class if it's defined in this file (more flexible matching)
+          if (
+            className.toLowerCase().includes(fileName.toLowerCase()) ||
+            fileName.toLowerCase().includes(className.toLowerCase()) ||
+            className === 'DataProcessor' ||
+            className.toLowerCase().includes('test') // For test files
+          ) {
+            // Check if the class is exported
+            const exportPattern = new RegExp(
+              `module\\.exports\\s*=\\s*${className}|exports\\.${className}\\s*=\\s*${className}`
+            );
+            if (!exportPattern.test(code)) {
+              issues.push(
+                `Class '${className}' is not exported. Add 'module.exports = ${className};' to ${path.basename(filePath)}`
+              );
+            }
             imports.push(`const ${className} = require('../${path.basename(filePath)}');`);
+          }
+        }
+      });
+    }
+
+    // Check for function definitions (but not arrow functions or methods)
+    const functionMatches = code.match(
+      /^(?!.*=>.*)[ \t]*function\s+(\w+)[\s]*\(|^(?!.*=>.*)[ \t]*(\w+)[\s]*\([^)]*\)[\s]*{/gm
+    );
+    if (functionMatches) {
+      functionMatches.forEach((match) => {
+        const functionName = match
+          .replace(/^(?!.*=>.*)[ \t]*function\s+/, '')
+          .replace(/[\s]*\([^)]*\)[\s]*{/, '');
+        if (functionName && filePath.endsWith('.js') && !filePath.includes('/__tests__/')) {
+          const fileName = path.basename(filePath, '.js');
+          if (
+            functionName.toLowerCase().includes(fileName.toLowerCase()) ||
+            fileName.toLowerCase().includes(functionName.toLowerCase())
+          ) {
+            // Check if the function is exported
+            const exportPattern = new RegExp(
+              `module\\.exports\\s*=\\s*${functionName}|exports\\.${functionName}\\s*=\\s*${functionName}`
+            );
+            if (!exportPattern.test(code)) {
+              issues.push(
+                `Function '${functionName}' is not exported. Add 'module.exports = ${functionName};' to ${path.basename(filePath)}`
+              );
+            }
+            imports.push(`const ${functionName} = require('../${path.basename(filePath)}');`);
           }
         }
       });
@@ -128,6 +174,9 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     if (code.includes('path.') || code.includes('path.join') || code.includes('path.dirname')) {
       imports.push("const path = require('path');");
     }
+
+    // Store issues for later reporting
+    this.lastImportIssues = issues;
 
     return imports.join('\n');
   }
@@ -223,6 +272,17 @@ describe('${this.generateTestSuiteName(filePath)}', () => {
           error: 'No test code generated',
           file: filePath,
           fullResponse: response.substring(0, 500), // Include part of response for debugging
+        };
+      }
+
+      // Check for import issues and provide helpful error messages
+      if (this.lastImportIssues && this.lastImportIssues.length > 0) {
+        return {
+          success: false,
+          error: `Import issues detected: ${this.lastImportIssues.join(', ')}`,
+          file: filePath,
+          suggestions: this.lastImportIssues,
+          testCode: testCode, // Include the generated test code for reference
         };
       }
 

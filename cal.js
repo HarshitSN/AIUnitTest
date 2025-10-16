@@ -71,3 +71,5 @@ calc.appendNumber(3);
 calc.compute();
 
 console.log('Result:', calc.getDisplayValue()); // Output: Result: 8
+
+module.exports = Calculator;
