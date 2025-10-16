@@ -19,5 +19,5 @@ class Calculator {
   }
 }
 
-// Export the Calculator classs
+// Export the Calculator class
 module.exports = Calculator;
