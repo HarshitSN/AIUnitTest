@@ -65,7 +65,7 @@ class Calculator {
 
 // Example usage
 const calc = new Calculator();
-calc.appendNumber(5);
+calc.appendNumber(10);
 calc.chooseOperation('+');
 calc.appendNumber(3);
 calc.compute();
