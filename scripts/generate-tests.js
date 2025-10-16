@@ -82,8 +82,10 @@ async function mergeTestFile(testFilePath, newTestCode) {
 async function analyzeSourceForMissingTests(testFilePath, newTestCode) {
   try {
     // Extract the source file path from the test file path
+    // testFilePath is like: __tests__/cal.test.js
+    // sourceFilePath should be: cal.js (in the same directory as __tests__)
     const sourceFileName = path.basename(testFilePath, '.test.js') + '.js';
-    const sourceFileDir = path.dirname(testFilePath).replace('/__tests__', '');
+    const sourceFileDir = path.dirname(path.resolve(testFilePath, '..')); // Go up one level from __tests__
     const sourceFilePath = path.join(sourceFileDir, sourceFileName);
 
     // Read source file
