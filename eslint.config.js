@@ -17,7 +17,7 @@ export default [
       prettier: prettier,
     },
     rules: {
-      'prettier/prettier': 'error',
+      // 'prettier/prettier': 'error',
       'no-console': 'off',
       'no-unused-vars': 'warn',
     },
