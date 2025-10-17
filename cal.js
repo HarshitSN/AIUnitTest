@@ -45,7 +45,7 @@ class Calculator {
       throw new Error('Argument must be a number');
     }
     if (n < 0) {
-      throw new Error('Factorial is not defined for negative numbers');
+      throw new Error('Factorial is not defined for negative numberss');
     }
     if (n === 0 || n === 1) {
       return 1;
