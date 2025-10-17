@@ -16,28 +16,14 @@ pipeline {
         stage('Generate AI Tests') {
             steps {
                 script {
-                    // Determine changed files based on build type
+                    // Get the list of files changed in the most recent commit only
                     def committedFiles = sh(
                         script: '''
                             set -e
-                            # Ensure sufficient history for diffs (no-op if already present)
-                            if [ -n "${BRANCH_NAME}" ]; then
-                              git fetch --depth=50 origin "${BRANCH_NAME}" || true
-                            fi
-
-                            if [ -n "${CHANGE_ID}" ] && [ -n "${CHANGE_TARGET}" ]; then
-                              # PR build: diff from merge-base of target to HEAD
-                              git fetch origin "${CHANGE_TARGET}" --depth=50 || true
-                              range="origin/${CHANGE_TARGET}...HEAD"
-                              git diff --name-only --diff-filter=AM "$range" \
-                                | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
-                                | grep -v "^__tests__/" || true
-                            else
-                              # Branch build: only files from the current commit
-                              git diff-tree --no-commit-id --name-only -r --diff-filter=AM "${GIT_COMMIT}" \
-                                | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
-                                | grep -v "^__tests__/" || true
-                            fi
+                            # List files changed in the CURRENT commit only
+                            git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD \
+                              | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
+                              | grep -v "^__tests__/" || true
                         ''',
                         returnStdout: true
                     ).trim()

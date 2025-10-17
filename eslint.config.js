@@ -3,7 +3,6 @@ import prettier from 'eslint-plugin-prettier';
 import globals from 'globals';
 
 export default [
-  { ignores: ['scripts/__tests__/**', 'coverage/**'] },
   js.configs.recommended,
   {
     languageOptions: {
