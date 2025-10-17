@@ -142,7 +142,6 @@ async function analyzeSourceForMissingTests(testFilePath, newTestCode) {
       sourceFunctions: Array.from(sourceFunctions),
       testedFunctions: Array.from(testedFunctions),
     };
-
   } catch (error) {
     console.error('❌ Error analyzing source for missing tests:', error.message);
     return { hasMissingTests: false, missingTests: [] };
