@@ -1,6 +1,6 @@
 // palindrome.test.js
 const { describe, test, expect } = require('@jest/globals');
-const { isPalindrome } = require('./palindrome.js');
+const { isPalindrome } = require('../palindrome.js');
 
 describe('isPalindrome function', () => {
   describe('valid inputs', () => {
