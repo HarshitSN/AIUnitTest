@@ -59,5 +59,5 @@ let calculator = new Calculator();
 let a = 5;
 let b = 1;
 console.log(calculator.multiply(a, b));
-// Export the Calculator classs
+// Export the Calculator class
 module.exports = Calculator;
