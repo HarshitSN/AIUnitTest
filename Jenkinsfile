@@ -20,18 +20,10 @@ pipeline {
                     def committedFiles = sh(
                         script: '''
                             set -e
-                            if git rev-parse HEAD~1 >/dev/null 2>&1; then
-                              PARENT_COMMIT=$(git rev-parse HEAD~1)
-                              LAST_COMMIT=$(git rev-parse HEAD)
-                              git diff --name-only --diff-filter=AM "$PARENT_COMMIT" "$LAST_COMMIT" \
-                                | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
-                                | grep -v "^__tests__/" || true
-                            else
-                              # Initial commit: only consider files added in HEAD
-                              git show --pretty="format:" --name-only --diff-filter=AM HEAD \
-                                | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
-                                | grep -v "^__tests__/" || true
-                            fi
+                            # List files changed in the CURRENT commit only
+                            git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD \
+                              | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
+                              | grep -v "^__tests__/" || true
                         ''',
                         returnStdout: true
                     ).trim()
