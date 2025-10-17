@@ -17,6 +17,6 @@ function capitalizeWords(sentence) {
   let sentence = "hello world from javascript";
   console.log(capitalizeWords(sentence));
   
-  // Export the function for testing
+  // Export the function for testingg
   module.exports = capitalizeWords;
   
