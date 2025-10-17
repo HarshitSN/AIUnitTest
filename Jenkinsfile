@@ -16,6 +16,9 @@ pipeline {
         stage('Generate AI Tests') {
             steps {
                 script {
+                    // Clean up any existing test files first
+                    sh 'find . -name "*.test.js" -type f -delete || true'
+
                     // Get the list of committed JavaScript/TypeScript files using git show
                     def committedFiles = sh(
                         script: '''
