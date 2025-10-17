@@ -69,38 +69,68 @@ pipeline {
         stage('Commit Generated Tests') {
             steps {
                 script {
-                    // Always stage any changes in the __tests__ directory (new and modified)
-                    sh 'git add __tests__/ || true'
-
-                    // Count staged test files after staging
-                    def stagedTests = sh(
-                        script: 'git diff --cached --name-only -- "__tests__/" | wc -l',
+                    // Get the list of files processed in this run
+                    def processedFiles = []
+                    def committedFiles = sh(
+                        script: '''
+                            set -e
+                            git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD \
+                              | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
+                              | grep -v "^__tests__/" \
+                              | grep -v "^scripts/" || true
+                        ''',
                         returnStdout: true
                     ).trim()
 
-                    if (stagedTests.toInteger() > 0) {
-                        echo "📝 Found ${stagedTests} staged test file(s) to commit..."
+                    if (committedFiles) {
+                        processedFiles = committedFiles.split('\n').findAll { it.trim() }
+                    }
 
-                        // Commit with a descriptive message
-                        sh """
-                            git commit -m "🤖 Update AI-generated unit tests\n\nUpdated by AI test generator for committed JavaScript/TypeScript files.\n\nFiles processed: ${stagedTests} test file(s)"
-                        """
+                    // Only stage test files for the files that were actually processed
+                    def filesToStage = []
+                    processedFiles.each { file ->
+                        def testFile = "__tests__/${file.replaceAll(/\.js$/, '.test.js')}"
+                        filesToStage.add(testFile)
+                    }
 
-                        echo "✅ Committed ${stagedTests} test file(s) locally"
+                    if (filesToStage.size() > 0) {
+                        echo "📝 Staging ${filesToStage.size()} test file(s) to commit..."
+                        filesToStage.each { testFile ->
+                            sh "git add '${testFile}' || true"
+                        }
 
-                        // Try to push, but don't fail the build if push fails (common in some CI setups)
-                        try {
-                            // In Jenkins detached HEAD state, we need to push the current commit
-                            sh 'git push origin HEAD:main'
-                            echo "✅ Successfully pushed generated test files to repository"
-                        } catch (Exception e) {
-                            echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
-                            echo "💡 Generated test files are committed locally and will be available in the next push"
-                            echo "   You can manually push with: git push origin main"
-                            echo "   Or the next commit from your local machine will include these changes"
+                        // Count staged test files after staging
+                        def stagedTests = sh(
+                            script: 'git diff --cached --name-only | grep "__tests__/" | wc -l',
+                            returnStdout: true
+                        ).trim()
+
+                        if (stagedTests.toInteger() > 0) {
+                            echo "📝 Found ${stagedTests} staged test file(s) to commit..."
+
+                            // Commit with a descriptive message
+                            sh """
+                                git commit -m "🤖 Update AI-generated unit tests\n\nUpdated by AI test generator for committed JavaScript/TypeScript files.\n\nFiles processed: ${filesToStage.join(', ')}"
+                            """
+
+                            echo "✅ Committed ${stagedTests} test file(s) locally"
+
+                            // Try to push, but don't fail the build if push fails (common in some CI setups)
+                            try {
+                                // In Jenkins detached HEAD state, we need to push the current commit
+                                sh 'git push origin HEAD:main'
+                                echo "✅ Successfully pushed generated test files to repository"
+                            } catch (Exception e) {
+                                echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
+                                echo "💡 Generated test files are committed locally and will be available in the next push"
+                                echo "   You can manually push with: git push origin main"
+                                echo "   Or the next commit from your local machine will include these changes"
+                            }
+                        } else {
+                            echo "ℹ️ No new or modified test files to commit"
                         }
                     } else {
-                        echo "ℹ️ No new or modified test files to commit"
+                        echo "ℹ️ No files were processed for test generation"
                     }
                 }
             }
