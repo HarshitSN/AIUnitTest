@@ -624,8 +624,15 @@ CRITICAL INSTRUCTIONS:
 // Tests verify EXACT code behavior, no assumptions
 
 const { describe, test, expect } = require('@jest/globals');
+
 // Import the ${className || functionName} ${className ? 'class' : 'function'}
 const ${className || functionName} = require('../${path.basename(filePath)}');
+
+${analysis.functions.length > 0 && className
+  ? `// Import standalone functions
+const { ${analysis.functions.map((f) => f.name).join(', ')} } = require('../${path.basename(filePath)}');`
+  : ''
+}
 
   describe('boundary value analysis', () => {
     // Test values at exact boundaries, just above/below boundaries, min/max values
