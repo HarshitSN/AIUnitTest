@@ -29,6 +29,16 @@ class Calculator {
     }
     return a / b;
   }
+
+  power(base, exponent) {
+    if (typeof base !== 'number' || typeof exponent !== 'number') {
+      throw new Error('Both arguments must be numbers');
+    }
+    if (exponent < 0) {
+      throw new Error('Exponent must be non-negative');
+    }
+    return Math.pow(base, exponent);
+  }
 }
 
 // Example usage
