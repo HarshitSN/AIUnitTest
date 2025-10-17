@@ -58,12 +58,6 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
         stage('Commit Generated Tests') {
             steps {
                 script {
@@ -101,6 +95,12 @@ pipeline {
                         echo "ℹ️ No new or modified test files to commit"
                     }
                 }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'npm test'
             }
         }
     }
