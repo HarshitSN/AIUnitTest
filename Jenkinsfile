@@ -19,16 +19,18 @@ pipeline {
                     // Get the list of files changed in the most recent commit only
                     def committedFiles = sh(
                         script: '''
-                            # Prefer a strict diff between HEAD~1 and HEAD (single latest commit)
+                            set -e
                             if git rev-parse HEAD~1 >/dev/null 2>&1; then
-                              git diff --name-only --diff-filter=AM HEAD~1 HEAD \
+                              PARENT_COMMIT=$(git rev-parse HEAD~1)
+                              LAST_COMMIT=$(git rev-parse HEAD)
+                              git diff --name-only --diff-filter=AM "$PARENT_COMMIT" "$LAST_COMMIT" \
                                 | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
-                                | grep -v __tests__/ || true
+                                | grep -v "^__tests__/" || true
                             else
-                              # Fallback for initial commits: use files from HEAD only
-                              git show --name-only --pretty=format: HEAD \
+                              # Initial commit: only consider files added in HEAD
+                              git show --pretty="format:" --name-only --diff-filter=AM HEAD \
                                 | grep -E "\\.(js|jsx|ts|tsx|mjs)$" \
-                                | grep -v __tests__/ || true
+                                | grep -v "^__tests__/" || true
                             fi
                         ''',
                         returnStdout: true

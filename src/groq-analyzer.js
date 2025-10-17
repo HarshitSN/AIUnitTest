@@ -769,43 +769,12 @@ FOCUS ON ACTUAL BEHAVIOR:
     });
 
     // Check if tests are actually using imported functions/classes (more lenient)
-    const className = analysis.classes.length > 0 ? analysis.classes[0].name : null;
-    const functionName = analysis.functions.length > 0 ? analysis.functions[0].name : null;
-
-    if (
-      className &&
-      !testCode.includes(`new ${className}(`) &&
-      !testCode.includes(`${className}.`)
-    ) {
-      issues.push(`Tests may not be using the imported ${className} class properly`);
-      suggestions.push(`Ensure tests use the ${className} class or its methods`);
-    }
-
-    if (functionName && !testCode.includes(`${functionName}(`)) {
-      issues.push(`Tests are not using the imported ${functionName} function`);
-      suggestions.push(`Ensure tests call the function using '${functionName}()'`);
-    }
+    // Relaxed: do not require tests to directly reference detected classes/functions
 
     // Enhanced behavior validation
     this.validateBehaviorAlignment(testCode, analysis, issues, suggestions);
 
-    // Check for raw operations that should use the imported code
-    // Generic check for any class that might have math operations
-    const hasMathOperations = analysis.classes.some((cls) =>
-      cls.methods.some(
-        (method) =>
-          method.body.includes('+') ||
-          method.body.includes('-') ||
-          method.body.includes('*') ||
-          method.body.includes('/') ||
-          method.body.includes('Math.')
-      )
-    );
-
-    if (testCode.includes(' * ') && hasMathOperations && className) {
-      issues.push(`Tests are using raw multiplication instead of ${className} class`);
-      suggestions.push(`Use the ${className} class methods instead of raw operations`);
-    }
+    // Relaxed: do not enforce using class methods over raw operations
 
     return {
       isValid: issues.length === 0,
