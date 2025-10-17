@@ -504,6 +504,9 @@ Code:\n\`\`\`\n${code}\n\`\`\``;
     const className = analysis.classes.length > 0 ? analysis.classes[0].name : 'UnknownClass';
     const functionName = analysis.functions.length > 0 ? analysis.functions[0].name : null;
 
+    // Compute function names for import
+    const functionNames = analysis.functions.map((f) => f.name).join(', ');
+
     if (!isExported) {
       return `Generate comprehensive unit tests for this JavaScript code:
 
@@ -630,7 +633,7 @@ const ${className || functionName} = require('../${path.basename(filePath)}');
 
 ${analysis.functions.length > 0 && className
   ? `// Import standalone functions
-const { ${analysis.functions.map((f) => f.name).join(', ')} } = require('../${path.basename(filePath)}');`
+const { ${functionNames} } = require('../${path.basename(filePath)}');`
   : ''
 }
 
