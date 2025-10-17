@@ -9,5 +9,5 @@ let a = 5;
 let b = 1;
 console.log(multiply(a, b));
 
-// Export the function for testing
+// Export the function for testingg
 module.exports = multiply;
