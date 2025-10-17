@@ -631,10 +631,11 @@ const { describe, test, expect } = require('@jest/globals');
 // Import the ${className || functionName} ${className ? 'class' : 'function'}
 const ${className || functionName} = require('../${path.basename(filePath)}');
 
-${analysis.functions.length > 0 && className
-  ? `// Import standalone functions
+${
+  analysis.functions.length > 0 && className
+    ? `// Import standalone functions
 const { ${functionNames} } = require('../${path.basename(filePath)}');`
-  : ''
+    : ''
 }
 
   describe('boundary value analysis', () => {
