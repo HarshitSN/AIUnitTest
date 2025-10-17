@@ -5,6 +5,47 @@ import fs from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
 
+// Helper: Extract describe blocks with their names and full text
+function extractDescribeBlocks(content) {
+  const blocks = new Map();
+  const describeRegex = /describe\(\s*['"]([^'"]+)['"]\s*,\s*\(\s*\)\s*=>\s*\{/g;
+  let match;
+  while ((match = describeRegex.exec(content)) !== null) {
+    const name = match[1];
+    // Find matching closing brace for this describe body
+    let braceCount = 1; // we've just seen '{'
+    let i = match.index + match[0].length; // start after the '{'
+    while (i < content.length && braceCount > 0) {
+      const ch = content[i];
+      if (ch === '{') braceCount++;
+      else if (ch === '}') braceCount--;
+      i++;
+    }
+    const fullBlock = content.slice(match.index, i);
+    blocks.set(name, fullBlock);
+  }
+  return blocks;
+}
+
+// Helper: Insert text before the final closing of the top-level describe
+function insertBeforeFinalClosingDescribe(existingContent, toInsert) {
+  // Find the last occurrence of \n}); (end of a describe)
+  const needle = '\n});';
+  const idx = existingContent.lastIndexOf(needle);
+  if (idx === -1) {
+    // Fallback: append at end with a newline
+    return existingContent.trimEnd() + '\n' + toInsert + '\n';
+  }
+  const before = existingContent.slice(0, idx);
+  const after = existingContent.slice(idx);
+  // Ensure there is a leading newline and proper indentation (2 spaces inside top-level describe)
+  const normalizedInsert = toInsert
+    .split('\n')
+    .map((line) => (line.trim().length === 0 ? line : '  ' + line))
+    .join('\n');
+  return before + '\n' + normalizedInsert + '\n' + after;
+}
+
 // Get filename from command line arguments
 const fileName = process.argv[2] || 'multiply.js';
 
@@ -52,9 +93,42 @@ async function generateTests() {
       );
 
       await fs.mkdir(path.dirname(testFilePath), { recursive: true });
-      await fs.writeFile(testFilePath, testCode, 'utf8');
 
-      console.log('✅ Generated test file: ' + testFilePath);
+      // Merge strategy: if file exists, append only missing describe blocks
+      let finalContent = testCode;
+      let merged = false;
+      try {
+        const existing = await fs.readFile(testFilePath, 'utf8');
+        const existingBlocks = extractDescribeBlocks(existing);
+        const newBlocks = extractDescribeBlocks(testCode);
+
+        // Determine which blocks are missing
+        const missing = [];
+        for (const [name, block] of newBlocks.entries()) {
+          if (!existingBlocks.has(name)) {
+            missing.push(block);
+          }
+        }
+
+        if (missing.length > 0) {
+          const toInsert = missing.join('\n\n');
+          finalContent = insertBeforeFinalClosingDescribe(existing, toInsert);
+          merged = true;
+          console.log(`✅ Merged ${missing.length} new describe block(s) into existing tests`);
+        } else {
+          // No new blocks; keep existing as-is
+          finalContent = existing;
+          merged = true;
+          console.log('ℹ️ No new describe blocks to add; existing tests unchanged');
+        }
+      } catch {
+        // File does not exist; will create fresh
+        merged = false;
+      }
+
+      await fs.writeFile(testFilePath, finalContent, 'utf8');
+
+      console.log((merged ? '✅ Updated test file: ' : '✅ Generated test file: ') + testFilePath);
       return true;
     } else {
       console.error('❌ Failed to generate tests:', result.error);
