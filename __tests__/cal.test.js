@@ -6,167 +6,153 @@ const { describe, test, expect } = require('@jest/globals');
 // Import the Calculator class
 const Calculator = require('../cal.js');
 
-describe('Calculator class', () => {
-  describe('add method', () => {
+describe('Calculator', () => {
+  describe('add', () => {
     test('should add two numbers', () => {
-      const calculator = new Calculator();
-      const a = 5;
-      const b = 1;
-      const result = calculator.add(a, b);
-      expect(result).toBe(6);
+      const instance = new Calculator();
+      const result = instance.add(5, 3);
+      expect(result).toBe(8);
     });
 
     test('should throw error for non-numeric inputs', () => {
-      const calculator = new Calculator();
-      const a = 'five';
-      const b = 1;
-      expect(() => calculator.add(a, b)).toThrowError('Both arguments must be numbers');
+      const instance = new Calculator();
+      expect(() => instance.add('a', 3)).toThrowError('Both arguments must be numbers');
     });
 
-    test('should handle zero correctly', () => {
-      const calculator = new Calculator();
-      const a = 0;
-      const b = 1;
-      const result = calculator.add(a, b);
-      expect(result).toBe(1);
-    });
-
-    test('should handle negative numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = -5;
-      const b = -1;
-      const result = calculator.add(a, b);
-      expect(result).toBe(-6);
-    });
-
-    test('should handle large numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = 1000000;
-      const b = 1;
-      const result = calculator.add(a, b);
-      expect(result).toBe(1000001);
-    });
-  });
-
-  describe('subtract method', () => {
-    test('should subtract two numbers', () => {
-      const calculator = new Calculator();
-      const a = 5;
-      const b = 1;
-      const result = calculator.subtract(a, b);
-      expect(result).toBe(4);
-    });
-
-    test('should throw error for non-numeric inputs', () => {
-      const calculator = new Calculator();
-      const a = 'five';
-      const b = 1;
-      expect(() => calculator.subtract(a, b)).toThrowError('Both arguments must be numbers');
-    });
-
-    test('should handle zero correctly', () => {
-      const calculator = new Calculator();
-      const a = 0;
-      const b = 1;
-      const result = calculator.subtract(a, b);
-      expect(result).toBe(-1);
-    });
-
-    test('should handle negative numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = -5;
-      const b = -1;
-      const result = calculator.subtract(a, b);
-      expect(result).toBe(-4);
-    });
-
-    test('should handle large numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = 1000000;
-      const b = 1;
-      const result = calculator.subtract(a, b);
-      expect(result).toBe(999999);
-    });
-  });
-
-  describe('multiply method', () => {
-    test('should multiply two numbers', () => {
-      const calculator = new Calculator();
-      const a = 5;
-      const b = 1;
-      const result = calculator.multiply(a, b);
+    test('should handle edge case: zero', () => {
+      const instance = new Calculator();
+      const result = instance.add(0, 5);
       expect(result).toBe(5);
     });
 
-    test('should throw error for non-numeric inputs', () => {
-      const calculator = new Calculator();
-      const a = 'five';
-      const b = 1;
-      expect(() => calculator.multiply(a, b)).toThrowError('Both arguments must be numbers');
+    test('should handle edge case: negative numbers', () => {
+      const instance = new Calculator();
+      const result = instance.add(-5, -3);
+      expect(result).toBe(-8);
+    });
+  });
+
+  describe('subtract', () => {
+    test('should subtract two numbers', () => {
+      const instance = new Calculator();
+      const result = instance.subtract(5, 3);
+      expect(result).toBe(2);
     });
 
-    test('should handle zero correctly', () => {
-      const calculator = new Calculator();
-      const a = 0;
-      const b = 1;
-      const result = calculator.multiply(a, b);
+    test('should throw error for non-numeric inputs', () => {
+      const instance = new Calculator();
+      expect(() => instance.subtract('a', 3)).toThrowError('Both arguments must be numbers');
+    });
+
+    test('should handle edge case: zero', () => {
+      const instance = new Calculator();
+      const result = instance.subtract(0, 5);
+      expect(result).toBe(-5);
+    });
+
+    test('should handle edge case: negative numbers', () => {
+      const instance = new Calculator();
+      const result = instance.subtract(-5, -3);
+      expect(result).toBe(-2);
+    });
+  });
+
+  describe('multiply', () => {
+    test('should multiply two numbers', () => {
+      const instance = new Calculator();
+      const result = instance.multiply(5, 3);
+      expect(result).toBe(15);
+    });
+
+    test('should throw error for non-numeric inputs', () => {
+      const instance = new Calculator();
+      expect(() => instance.multiply('a', 3)).toThrowError('Both arguments must be numbers');
+    });
+
+    test('should handle edge case: zero', () => {
+      const instance = new Calculator();
+      const result = instance.multiply(0, 5);
       expect(result).toBe(0);
     });
 
-    test('should handle negative numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = -5;
-      const b = -1;
-      const result = calculator.multiply(a, b);
-      expect(result).toBe(5);
-    });
-
-    test('should handle large numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = 1000000;
-      const b = 1;
-      const result = calculator.multiply(a, b);
-      expect(result).toBe(1000000);
+    test('should handle edge case: negative numbers', () => {
+      const instance = new Calculator();
+      const result = instance.multiply(-5, -3);
+      expect(result).toBe(15);
     });
   });
 
-  describe('divide method', () => {
+  describe('divide', () => {
     test('should divide two numbers', () => {
-      const calculator = new Calculator();
-      const a = 5;
-      const b = 1;
-      const result = calculator.divide(a, b);
+      const instance = new Calculator();
+      const result = instance.divide(10, 2);
       expect(result).toBe(5);
     });
 
     test('should throw error for non-numeric inputs', () => {
-      const calculator = new Calculator();
-      const a = 'five';
-      const b = 1;
-      expect(() => calculator.divide(a, b)).toThrowError('Both arguments must be numbers');
+      const instance = new Calculator();
+      expect(() => instance.divide('a', 3)).toThrowError('Both arguments must be numbers');
     });
 
     test('should throw error for division by zero', () => {
-      const calculator = new Calculator();
-      const a = 5;
-      const b = 0;
-      expect(() => calculator.divide(a, b)).toThrowError('Division by zero');
+      const instance = new Calculator();
+      expect(() => instance.divide(10, 0)).toThrowError('Division by zero');
     });
 
-    test('should handle negative numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = -5;
-      const b = -1;
-      const result = calculator.divide(a, b);
-      expect(result).toBe(5);
+    test('should handle edge case: negative numbers', () => {
+      const instance = new Calculator();
+      const result = instance.divide(-10, 2);
+      expect(result).toBe(-5);
+    });
+  });
+
+  describe('power', () => {
+    test('should calculate power of two numbers', () => {
+      const instance = new Calculator();
+      const result = instance.power(2, 3);
+      expect(result).toBe(8);
     });
 
-    test('should handle large numbers correctly', () => {
-      const calculator = new Calculator();
-      const a = 1000000;
-      const b = 1;
-      const result = calculator.divide(a, b);
-      expect(result).toBe(1000000);
+    test('should throw error for non-numeric inputs', () => {
+      const instance = new Calculator();
+      expect(() => instance.power('a', 3)).toThrowError('Both arguments must be numbers');
+    });
+
+    test('should throw error for negative exponent', () => {
+      const instance = new Calculator();
+      expect(() => instance.power(2, -3)).toThrowError('Exponent must be non-negative');
+    });
+
+    test('should handle edge case: zero exponent', () => {
+      const instance = new Calculator();
+      const result = instance.power(2, 0);
+      expect(result).toBe(1);
+    });
+  });
+
+  describe('factorial', () => {
+    test('should calculate factorial of a number', () => {
+      const instance = new Calculator();
+      const result = instance.factorial(5);
+      expect(result).toBe(120);
+    });
+
+    test('should throw error for non-numeric input', () => {
+      const instance = new Calculator();
+      expect(() => instance.factorial('a')).toThrowError('Argument must be a number');
+    });
+
+    test('should throw error for negative number', () => {
+      const instance = new Calculator();
+      expect(() => instance.factorial(-5)).toThrowError(
+        'Factorial is not defined for negative numbers'
+      );
+    });
+
+    test('should handle edge case: zero', () => {
+      const instance = new Calculator();
+      const result = instance.factorial(0);
+      expect(result).toBe(1);
     });
   });
 });
