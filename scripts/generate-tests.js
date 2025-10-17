@@ -4,6 +4,7 @@ import GroqAIAnalyzer from '../src/groq-analyzer.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { execSync } from 'child_process';
+import { parse } from '@babel/parser';
 
 // Helper: Extract describe blocks with their names and full text
 function extractDescribeBlocks(content) {
@@ -28,22 +29,22 @@ function extractDescribeBlocks(content) {
 }
 
 // Helper: Insert text before the final closing of the top-level describe
-function insertBeforeFinalClosingDescribe(existingContent, toInsert) {
-  // Find the last occurrence of \n}); (end of a describe)
-  const needle = '\n});';
-  const idx = existingContent.lastIndexOf(needle);
-  if (idx === -1) {
-    // Fallback: append at end with a newline
-    return existingContent.trimEnd() + '\n' + toInsert + '\n';
+// (old insertBeforeFinalClosingDescribe removed; using safer EOF append instead)
+
+// Safer merge: append missing describe blocks at EOF instead of injecting inside blocks
+function mergeDescribeBlocksSafely(existingContent, blocksToAppend) {
+  if (!blocksToAppend || blocksToAppend.length === 0) return existingContent;
+  const trimmed = existingContent.replace(/\s*$/, '');
+  return trimmed + '\n\n' + blocksToAppend.join('\n\n') + '\n';
+}
+
+function isSyntaxValid(code) {
+  try {
+    parse(code, { sourceType: 'unambiguous', plugins: ['jsx'] });
+    return true;
+  } catch {
+    return false;
   }
-  const before = existingContent.slice(0, idx);
-  const after = existingContent.slice(idx);
-  // Ensure there is a leading newline and proper indentation (2 spaces inside top-level describe)
-  const normalizedInsert = toInsert
-    .split('\n')
-    .map((line) => (line.trim().length === 0 ? line : '  ' + line))
-    .join('\n');
-  return before + '\n' + normalizedInsert + '\n' + after;
 }
 
 // Get filename from command line arguments
@@ -111,8 +112,7 @@ async function generateTests() {
         }
 
         if (missing.length > 0) {
-          const toInsert = missing.join('\n\n');
-          finalContent = insertBeforeFinalClosingDescribe(existing, toInsert);
+          finalContent = mergeDescribeBlocksSafely(existing, missing);
           merged = true;
           console.log(`✅ Merged ${missing.length} new describe block(s) into existing tests`);
         } else {
@@ -124,6 +124,19 @@ async function generateTests() {
       } catch {
         // File does not exist; will create fresh
         merged = false;
+      }
+
+      // Validate syntax; if invalid after merge, fall back to EOF append strategy
+      if (!isSyntaxValid(finalContent)) {
+        try {
+          const existing = await fs.readFile(testFilePath, 'utf8');
+          const appended = mergeDescribeBlocksSafely(existing, [testCode]);
+          if (isSyntaxValid(appended)) {
+            finalContent = appended;
+          }
+        } catch {
+          // If no existing file, keep generated content as-is
+        }
       }
 
       await fs.writeFile(testFilePath, finalContent, 'utf8');
