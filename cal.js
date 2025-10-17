@@ -39,6 +39,19 @@ class Calculator {
     }
     return Math.pow(base, exponent);
   }
+
+  factorial(n) {
+    if (typeof n !== 'number') {
+      throw new Error('Argument must be a number');
+    }
+    if (n < 0) {
+      throw new Error('Factorial is not defined for negative numbers');
+    }
+    if (n === 0 || n === 1) {
+      return 1;
+    }
+    return n * this.factorial(n - 1);
+  }
 }
 
 // Example usage
