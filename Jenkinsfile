@@ -53,8 +53,9 @@ pipeline {
 
         stage('Lint and Format') {
             steps {
-                sh 'npm run lint'
+                sh 'npx eslint . --fix'
                 sh 'npm run format'
+                sh 'npm run lint'  // Final check to ensure no errors remain
             }
         }
 

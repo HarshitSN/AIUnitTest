@@ -3,6 +3,10 @@
 
 echo "🚀 Running pre-commit checks..."
 
+# Run lint-staged to auto-fix formatting issues
+echo "🔧 Running lint-staged to fix code style..."
+npx lint-staged
+
 # Get list of staged JavaScript/TypeScript files
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx)$')
 
