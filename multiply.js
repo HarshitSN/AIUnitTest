@@ -1,6 +1,7 @@
 // Simple multiplication function
 function multiply(a, b) {
-  return a * b;
+  const product = a * b;
+  return product === 0 ? 0 : product;
 }
 
 // Example usage
