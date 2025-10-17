@@ -5,6 +5,7 @@ import globals from 'globals';
 export default [
   js.configs.recommended,
   {
+    ignores: ['scripts/__tests__/**'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
