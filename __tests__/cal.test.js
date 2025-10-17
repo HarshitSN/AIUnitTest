@@ -5,8 +5,6 @@
 const { describe, test, expect } = require('@jest/globals');
 // Import the Calculator class
 const Calculator = require('../cal.js');
-// Import the standalone multiply function
-const { multiply } = require('../cal.js');
 
 describe('Calculator class', () => {
   describe('add method', () => {
