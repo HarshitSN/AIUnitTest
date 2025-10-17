@@ -39,5 +39,5 @@ function multiply(a, b) {
 let a = 5;
 let b = 1;
 console.log(multiply(a, b));
-// Export the Calculator classs
+// Export the Calculator class
 module.exports = Calculator;
