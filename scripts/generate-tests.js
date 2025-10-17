@@ -28,8 +28,23 @@ function extractDescribeBlocks(content) {
   return blocks;
 }
 
-// Helper: Insert text before the final closing of the top-level describe
-// (old insertBeforeFinalClosingDescribe removed; using safer EOF append instead)
+// Helper: Calculate relative path from test file to source file
+function calculateRelativeRequirePath(sourceFilePath, testFilePath) {
+  const sourceDir = path.dirname(sourceFilePath);
+  const testDir = path.dirname(testFilePath);
+
+  // Get relative path from test directory to source directory
+  const relativePath = path.relative(testDir, sourceDir);
+
+  // If the relative path is empty (same directory), use just the filename
+  if (relativePath === '') {
+    return `./${path.basename(sourceFilePath)}`;
+  }
+
+  // Otherwise, use the relative path with forward slashes
+  const normalizedPath = relativePath.replace(/\\/g, '/');
+  return `${normalizedPath}/${path.basename(sourceFilePath)}`;
+}
 
 // Safer merge: append missing describe blocks at EOF instead of injecting inside blocks
 function mergeDescribeBlocksSafely(existingContent, blocksToAppend) {
@@ -92,6 +107,12 @@ async function generateTests() {
         /import\s+{\s*([^}]+)\s*}\s+from\s+['"]@jest\/globals['"];?/g,
         "const { $1 } = require('@jest/globals');"
       );
+
+      // Fix require paths for the source file - calculate correct relative path
+      const sourceFileName = path.basename(fileName, path.extname(fileName));
+      const correctRequirePath = calculateRelativeRequirePath(fileName, testFilePath);
+      const requireRegex = new RegExp(`require\\(['"](?:\\./)?${sourceFileName}(\\.js)?['"]\\)`, 'g');
+      testCode = testCode.replace(requireRegex, `require('${correctRequirePath}')`);
 
       await fs.mkdir(path.dirname(testFilePath), { recursive: true });
 
