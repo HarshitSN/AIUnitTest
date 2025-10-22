@@ -160,9 +160,7 @@ Generated tests for: ${filesToStage.join(', ')}
                             // Create or update PR using GitHub CLI
                             try {
                                 def prExists = sh(
-                                    script: """
-                                        gh pr list --head ${env.CURRENT_BRANCH} --json number --jq '.[0].number'
-                                    """,
+                                    script: "gh pr list --head ${env.CURRENT_BRANCH} --json number --jq '.[0].number'",
                                     returnStdout: true
                                 ).trim()
 
@@ -170,22 +168,20 @@ Generated tests for: ${filesToStage.join(', ')}
                                     echo "♻️ PR #${prExists} already exists, updated with new commits"
                                 } else {
                                     echo "📬 Creating new pull request..."
+                                    
+                                    // Build PR body with proper escaping
+                                    def fileList = filesToStage.collect { "- ${it}" }.join('\\n')
+                                    def prTitle = "🤖 AI-Generated Tests for ${env.CURRENT_BRANCH}"
+                                    def prBody = "## AI-Generated Unit Tests\\n\\n" +
+                                                 "This PR contains automatically generated unit tests by the Jenkins AI pipeline.\\n\\n" +
+                                                 "### Generated Test Files\\n${fileList}\\n\\n" +
+                                                 "**Status**: Ready for review\\n" +
+                                                 "**Pipeline Run**: ${env.BUILD_URL}"
+                                    
                                     sh """
                                         gh pr create \
-                                            --title "🤖 AI-Generated Tests for ${env.CURRENT_BRANCH}" \
-                                            --body "## AI-Generated Unit Tests
-                                            
-This PR contains automatically generated unit tests by the Jenkins AI pipeline.
-
-### Files Processed
-${filesToStage.collect { "- \`\${it}\`" }.join('\n')}
-
-### Generated Test Files
-${filesToStage.collect { "- \`\${it}\`" }.join('\n')}
-
-**Status**: Ready for review
-**Pipeline Run**: ${env.BUILD_URL}
-                                            " \
+                                            --title '${prTitle}' \
+                                            --body '${prBody}' \
                                             --base main \
                                             --head ${env.CURRENT_BRANCH}
                                     """
