@@ -178,10 +178,10 @@ Generated tests for: ${filesToStage.join(', ')}
 This PR contains automatically generated unit tests by the Jenkins AI pipeline.
 
 ### Files Processed
-${filesToStage.collect { "- \`${it}\`" }.join('\n')}
+${filesToStage.collect { "- \`\${it}\`" }.join('\n')}
 
 ### Generated Test Files
-${filesToStage.collect { "- \`${it}\`" }.join('\n')}
+${filesToStage.collect { "- \`\${it}\`" }.join('\n')}
 
 **Status**: Ready for review
 **Pipeline Run**: ${env.BUILD_URL}
