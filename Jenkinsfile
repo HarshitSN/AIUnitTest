@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
-        GROQ_API_KEY = credentials('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')
+        GROQ_API_KEY = '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'
         GITHUB_TOKEN = credentials('github-token2')
         GIT_BRANCH = "${env.BRANCH_NAME}"
     }
