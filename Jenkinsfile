@@ -19,7 +19,6 @@ pipeline {
                     env.CURRENT_BRANCH = env.BRANCH_NAME ?: 'pr'
                     echo "🌿 Branch: ${env.CURRENT_BRANCH}"
 
-                    // Verify GitHub CLI is available
                     if (sh(script: 'which gh', returnStatus: true) != 0) {
                         error 'GitHub CLI (gh) not installed on agent.'
                     }
@@ -31,7 +30,6 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Simple node_modules cache (optional)
                 sh '''
                     if [ ! -d node_modules ]; then
                         npm install
@@ -98,12 +96,14 @@ pipeline {
                         returnStdout: true
                     ).trim().split('\n').findAll { it.trim() }
 
-                    def filesToStage = processedFiles.collect {
-                        "__tests__/${it.replaceAll(/\\.js$/, '.test.js')}"
-                    }
+                    // Only include test files that actually exist
+                    def filesToStage = processedFiles.collect { file ->
+                        def testFile = "__tests__/${file.replaceAll(/\\.js$/, '.test.js')}"
+                        return fileExists(testFile) ? testFile : null
+                    }.findAll { it != null }
 
                     if (filesToStage) {
-                        filesToStage.each { tf -> sh "git add '${tf}' || true" }
+                        filesToStage.each { tf -> sh "git add '${tf}'" }
 
                         def stagedCount = sh(
                             script: 'git diff --cached --name-only | grep "__tests__/" | wc -l || echo 0',
@@ -153,7 +153,7 @@ pipeline {
                             echo "ℹ️ No test files staged to commit."
                         }
                     } else {
-                        echo "ℹ️ No processed files."
+                        echo "ℹ️ No processed files with existing tests."
                     }
                 }
             }
