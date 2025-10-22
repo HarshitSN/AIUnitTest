@@ -60,4 +60,3 @@ let b = 1;
 console.log(calculator.multiply(a, b));
 
 module.exports = Calculator;
-//hi
