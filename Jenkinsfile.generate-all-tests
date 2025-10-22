@@ -1,0 +1,277 @@
+pipeline {
+    agent any
+
+    environment {
+        PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+        GROQ_API_KEY = credentials('groq-api-key')
+        GITHUB_TOKEN = credentials('github-token2')
+        GIT_BRANCH = "${env.BRANCH_NAME}"
+    }
+
+    stages {
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+                script {
+                    sh 'git config user.name "Jenkins AI Bot"'
+                    sh 'git config user.email "jenkins-ai@example.com"'
+
+                    env.CURRENT_BRANCH = env.BRANCH_NAME ?: 'main'
+                    echo "🌿 Branch: ${env.CURRENT_BRANCH}"
+
+                    if (sh(script: 'which gh', returnStatus: true) != 0) {
+                        error 'GitHub CLI (gh) not installed on agent.'
+                    }
+
+                    echo "🔑 Using Jenkins-provided GITHUB_TOKEN for GitHub CLI authentication"
+                }
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                sh '''
+                    if [ ! -d node_modules ]; then
+                        npm install
+                    else
+                        echo "✅ Using cached node_modules"
+                    fi
+                '''
+            }
+        }
+
+        stage('Discover Source Files') {
+            steps {
+                script {
+                    def sourceFiles = sh(
+                        script: '''
+                            find . -type f \\( -name "*.js" -o -name "*.ts" \\) \\
+                              ! -path "*/node_modules/*" \\
+                              ! -path "*/coverage/*" \\
+                              ! -path "*/__tests__/*" \\
+                              ! -path "*/scripts/*" \\
+                              ! -name "*.config.js" \\
+                              ! -name "*.config.cjs" \\
+                              ! -name "*.config.ts" \\
+                              ! -name "Jenkinsfile*" \\
+                              ! -name "*.test.js" \\
+                              ! -name "*.test.ts" | sort
+                        ''',
+                        returnStdout: true
+                    ).trim().split('\n').findAll { it.trim() }
+
+                    env.SOURCE_FILES = sourceFiles.join('\n')
+                    echo "📁 Found ${sourceFiles.size()} source files to process:"
+                    sourceFiles.each { file ->
+                        echo "  - ${file}"
+                    }
+                }
+            }
+        }
+
+        stage('Generate Tests') {
+            steps {
+                script {
+                    def sourceFiles = env.SOURCE_FILES.split('\n').findAll { it.trim() }
+                    def successfulFiles = []
+                    def failedFiles = []
+                    def retryFiles = []
+
+                    echo "🤖 Starting test generation for ${sourceFiles.size()} files..."
+
+                    // First pass - generate tests
+                    sourceFiles.each { file ->
+                        if (file.trim()) {
+                            echo "🔄 Processing: ${file}"
+                            def result = sh(
+                                script: "node scripts/generate-tests.js '${file}'",
+                                returnStatus: true
+                            )
+                            
+                            if (result == 0) {
+                                successfulFiles.add(file)
+                                echo "✅ Success: ${file}"
+                            } else {
+                                failedFiles.add(file)
+                                retryFiles.add(file)
+                                echo "❌ Failed: ${file} (will retry)"
+                            }
+                        }
+                    }
+
+                    // Second pass - retry failed files
+                    if (retryFiles.size() > 0) {
+                        echo "🔄 Retrying ${retryFiles.size()} failed files..."
+                        retryFiles.each { file ->
+                            echo "🔄 Retrying: ${file}"
+                            def result = sh(
+                                script: "node scripts/generate-tests.js '${file}'",
+                                returnStatus: true
+                            )
+                            
+                            if (result == 0) {
+                                successfulFiles.add(file)
+                                failedFiles.remove(file)
+                                echo "✅ Retry success: ${file}"
+                            } else {
+                                echo "❌ Retry failed: ${file}"
+                            }
+                        }
+                    }
+
+                    // Store results for later stages
+                    env.SUCCESSFUL_FILES = successfulFiles.join('\n')
+                    env.FAILED_FILES = failedFiles.join('\n')
+                    env.SUCCESS_COUNT = successfulFiles.size().toString()
+                    env.FAILURE_COUNT = failedFiles.size().toString()
+
+                    echo "📊 Test generation summary:"
+                    echo "  ✅ Successful: ${successfulFiles.size()}"
+                    echo "  ❌ Failed: ${failedFiles.size()}"
+                    
+                    if (failedFiles.size() > 0) {
+                        echo "  Failed files:"
+                        failedFiles.each { file ->
+                            echo "    - ${file}"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Lint and Format') {
+            steps {
+                sh '''
+                    echo "🧹 Running linting and formatting on generated test files..."
+                    npx eslint __tests__ --fix || true
+                    npm run format || true
+                    npm run lint || true
+                '''
+            }
+        }
+
+        stage('Commit and Push') {
+            steps {
+                script {
+                    // Find all generated test files
+                    def testFiles = sh(
+                        script: "find __tests__ -name '*.test.js' -o -name '*.test.ts'",
+                        returnStdout: true
+                    ).trim().split('\n').findAll { it.trim() }
+
+                    if (testFiles.size() > 0) {
+                        echo "📝 Committing ${testFiles.size()} test files..."
+                        
+                        testFiles.each { f ->
+                            sh "git add '${f}'"
+                        }
+
+                        def commitMessage = """🤖 AI-Generated Tests for Entire Repository
+
+Generated ${env.SUCCESS_COUNT} test files for source files across the repository.
+
+**Pipeline Run:** ${env.BUILD_URL}
+**Branch:** ${env.CURRENT_BRANCH}
+**Successful Files:** ${env.SUCCESS_COUNT}
+**Failed Files:** ${env.FAILURE_COUNT}
+
+${env.FAILED_FILES ? "**Failed Files:**\n${env.FAILED_FILES.split('\n').collect { "- ${it}" }.join('\n')}" : ""}"""
+
+                        sh """
+                            git commit -m "${commitMessage}" || echo "No changes to commit"
+                            git push https://${GITHUB_TOKEN}@github.com/HarshitMalik22/AIUnitTest.git HEAD:${env.CURRENT_BRANCH}
+                        """
+
+                        echo "✅ ${testFiles.size()} test file(s) pushed to ${env.CURRENT_BRANCH}"
+                    } else {
+                        echo "ℹ️ No test files found to commit."
+                    }
+                }
+            }
+        }
+
+        stage('Create Pull Request') {
+            steps {
+                script {
+                    def testFiles = sh(
+                        script: "find __tests__ -name '*.test.js' -o -name '*.test.ts'",
+                        returnStdout: true
+                    ).trim().split('\n').findAll { it.trim() }
+
+                    if (testFiles.size() > 0) {
+                        def prTitle = "🤖 AI-Generated Tests for Entire Repository"
+                        def prBody = """## AI-Generated Unit Tests for Entire Repository
+
+This PR contains automatically generated unit tests by the Jenkins AI pipeline for all eligible source files in the repository.
+
+### Summary
+- **Total Files Processed:** ${env.SOURCE_FILES.split('\n').findAll { it.trim() }.size()}
+- **Successful Test Generations:** ${env.SUCCESS_COUNT}
+- **Failed Test Generations:** ${env.FAILURE_COUNT}
+- **Generated Test Files:** ${testFiles.size()}
+
+### Generated Test Files
+${testFiles.collect { "- `${it}`" }.join('\n')}
+
+${env.FAILED_FILES ? """### Failed Files
+The following files failed test generation (after retry):
+${env.FAILED_FILES.split('\n').collect { "- `${it}`" }.join('\n')}""" : ""}
+
+### Pipeline Information
+- **Pipeline Run:** ${env.BUILD_URL}
+- **Branch:** ${env.CURRENT_BRANCH}
+- **Triggered:** Manual
+
+### Notes
+- All test files have been linted and formatted
+- Tests are generated using AI analysis of source code
+- Failed files were retried once before being marked as failed
+"""
+
+                        // Check if PR already exists
+                        def prExists = sh(
+                            script: "gh pr list --repo HarshitMalik22/AIUnitTest --head ${env.CURRENT_BRANCH} --json number --jq '.[0].number' || echo ''",
+                            returnStdout: true
+                        ).trim()
+
+                        if (!prExists) {
+                            sh """
+                                gh pr create \\
+                                  --repo HarshitMalik22/AIUnitTest \\
+                                  --title "${prTitle}" \\
+                                  --body "${prBody}" \\
+                                  --base main \\
+                                  --head ${env.CURRENT_BRANCH}
+                            """
+                            echo "✅ PR created successfully."
+                        } else {
+                            echo "♻️ PR #${prExists} already exists for this branch."
+                        }
+                    } else {
+                        echo "ℹ️ No test files found to create PR for."
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always { 
+            echo 'Pipeline execution finished.' 
+        }
+        success { 
+            echo '✅ Pipeline succeeded!'
+            script {
+                if (env.SUCCESS_COUNT && env.SUCCESS_COUNT != "0") {
+                    echo "✅ Generated tests for ${env.SUCCESS_COUNT} files"
+                }
+                if (env.FAILURE_COUNT && env.FAILURE_COUNT != "0") {
+                    echo "⚠️ Failed to generate tests for ${env.FAILURE_COUNT} files"
+                }
+            }
+        }
+        failure { 
+            echo '❌ Pipeline failed — check logs.' 
+        }
+    }
+}
