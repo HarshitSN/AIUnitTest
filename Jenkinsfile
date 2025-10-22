@@ -3,10 +3,39 @@ pipeline {
 
     environment {
         PATH = "/bin:/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
-        GROQ_API_KEY = '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'
+        GROQ_API_KEY = credentials('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')
+        GITHUB_TOKEN = credentials('github-token2')
+        GIT_BRANCH = "${env.BRANCH_NAME}"
     }
 
     stages {
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+                script {
+                    // Configure git identity for commits
+                    sh 'git config user.name "Jenkins AI Bot"'
+                    sh 'git config user.email "jenkins-ai@example.com"'
+                    
+                    // Store original branch information
+                    env.CURRENT_BRANCH = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                    echo "Working on branch: ${env.CURRENT_BRANCH}"
+                    
+                    // Verify GitHub CLI is installed
+                    def ghInstalled = sh(
+                        script: 'which gh',
+                        returnStatus: true
+                    )
+                    if (ghInstalled != 0) {
+                        error 'GitHub CLI (gh) is not installed. Install it on Jenkins agent.'
+                    }
+                    
+                    // Authenticate with GitHub
+                    sh 'echo "${GITHUB_TOKEN}" | gh auth login --with-token'
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 sh 'npm install'
@@ -66,7 +95,7 @@ pipeline {
             }
         }
 
-        stage('Commit Generated Tests') {
+        stage('Commit Generated Tests and Create PR') {
             steps {
                 script {
                     // Get the list of files processed in this run
@@ -110,21 +139,61 @@ pipeline {
 
                             // Commit with a descriptive message
                             sh """
-                                git commit -m "🤖 Update AI-generated unit tests\n\nUpdated by AI test generator for committed JavaScript/TypeScript files.\n\nFiles processed: ${filesToStage.join(', ')}"
+                                git commit -m "🤖 AI-generated unit tests
+                                
+Generated tests for: ${filesToStage.join(', ')}
+
+[skip ci]"
                             """
 
                             echo "✅ Committed ${stagedTests} test file(s) locally"
 
-                            // Try to push, but don't fail the build if push fails (common in some CI setups)
+                            // Push to origin branch
                             try {
-                                // In Jenkins detached HEAD state, we need to push the current commit
-                                sh 'git push origin HEAD:main'
-                                echo "✅ Successfully pushed generated test files to repository"
+                                sh "git push origin HEAD:${env.CURRENT_BRANCH}"
+                                echo "✅ Successfully pushed generated test files to ${env.CURRENT_BRANCH}"
                             } catch (Exception e) {
                                 echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
-                                echo "💡 Generated test files are committed locally and will be available in the next push"
-                                echo "   You can manually push with: git push origin main"
-                                echo "   Or the next commit from your local machine will include these changes"
+                                error "Failed to push to ${env.CURRENT_BRANCH}: ${e.getMessage()}"
+                            }
+
+                            // Create or update PR using GitHub CLI
+                            try {
+                                def prExists = sh(
+                                    script: """
+                                        gh pr list --head ${env.CURRENT_BRANCH} --json number --jq '.[0].number'
+                                    """,
+                                    returnStdout: true
+                                ).trim()
+
+                                if (prExists) {
+                                    echo "♻️ PR #${prExists} already exists, updated with new commits"
+                                } else {
+                                    echo "📬 Creating new pull request..."
+                                    sh """
+                                        gh pr create \
+                                            --title "🤖 AI-Generated Tests for ${env.CURRENT_BRANCH}" \
+                                            --body "## AI-Generated Unit Tests
+                                            
+This PR contains automatically generated unit tests by the Jenkins AI pipeline.
+
+### Files Processed
+${filesToStage.collect { "- \`${it}\`" }.join('\n')}
+
+### Generated Test Files
+${filesToStage.collect { "- \`${it}\`" }.join('\n')}
+
+**Status**: Ready for review
+**Pipeline Run**: ${env.BUILD_URL}
+                                            " \
+                                            --base main \
+                                            --head ${env.CURRENT_BRANCH}
+                                    """
+                                    echo "✅ Pull request created successfully"
+                                }
+                            } catch (Exception e) {
+                                echo "⚠️ Could not create/update pull request: ${e.getMessage()}"
+                                error "Failed to create/update PR: ${e.getMessage()}"
                             }
                         } else {
                             echo "ℹ️ No new or modified test files to commit"
