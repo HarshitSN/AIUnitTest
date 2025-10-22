@@ -17,9 +17,9 @@ pipeline {
                     sh 'git config user.name "Jenkins AI Bot"'
                     sh 'git config user.email "jenkins-ai@example.com"'
                     
-                    // Store original branch information
-                    env.CURRENT_BRANCH = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
-                    echo "Working on branch: ${env.CURRENT_BRANCH}"
+                    // Get the source branch from Jenkins environment (this is the branch the commit came from)
+                    env.CURRENT_BRANCH = env.BRANCH_NAME ?: 'pr'
+                    echo "Working with commits from branch: ${env.CURRENT_BRANCH}"
                     
                     // Verify GitHub CLI is installed
                     def ghInstalled = sh(
@@ -148,13 +148,18 @@ Generated tests for: ${filesToStage.join(', ')}
 
                             echo "✅ Committed ${stagedTests} test file(s) locally"
 
-                            // Push to origin branch
+                            // Push the current commit (with AI tests) to the source branch
                             try {
+                                // Get the current commit hash
+                                def currentCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                                echo "Pushing commit ${currentCommit} to branch ${env.CURRENT_BRANCH}"
+                                
+                                // Push the current commit to the source branch
                                 sh "git push origin HEAD:${env.CURRENT_BRANCH}"
-                                echo "✅ Successfully pushed generated test files to ${env.CURRENT_BRANCH}"
+                                echo "✅ Successfully pushed AI-generated tests to ${env.CURRENT_BRANCH}"
                             } catch (Exception e) {
                                 echo "⚠️ Could not push to remote repository: ${e.getMessage()}"
-                                error "Failed to push to ${env.CURRENT_BRANCH}: ${e.getMessage()}"
+                                error "Failed to push AI tests to ${env.CURRENT_BRANCH}: ${e.getMessage()}"
                             }
 
                             // Create or update PR using GitHub CLI
