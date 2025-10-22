@@ -18,6 +18,6 @@ function divide(a, b) {
   let b = 2;
   console.log(divide(a, b));
   
-  // Export the function for testinggg
+  // Export the function for testing
   module.exports = divide;
   
