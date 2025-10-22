@@ -77,12 +77,6 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
         stage('Commit Generated Tests and Create PR') {
             steps {
                 script {
@@ -152,6 +146,12 @@ pipeline {
                 }
             }
         }
+
+        stage('Test') {
+            steps {
+                sh 'npm test' // Now runs after PR creation
+            }
+        }
     } // end stages
 
     post {
@@ -159,4 +159,4 @@ pipeline {
         success { echo '✅ Pipeline succeeded!' }
         failure { echo '❌ Pipeline failed — check logs.' }
     }
-} // end pipeline
+}
