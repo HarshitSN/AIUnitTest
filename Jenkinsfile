@@ -84,82 +84,79 @@ pipeline {
         }
 
         stage('Commit Generated Tests and Create PR') {
-    steps {
-        script {
-            def processedFiles = sh(
-                script: '''
-                    git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD |
-                      grep -E "\\.(js|jsx|ts|tsx|mjs)$" |
-                      grep -v "^__tests__/" |
-                      grep -v "^scripts/" || true
-                ''',
-                returnStdout: true
-            ).trim().split('\n').findAll { it.trim() }
+            steps {
+                script {
+                    def processedFiles = sh(
+                        script: '''
+                            git diff-tree --no-commit-id --name-only -r --diff-filter=AM HEAD |
+                              grep -E "\\.(js|jsx|ts|tsx|mjs)$" |
+                              grep -v "^__tests__/" |
+                              grep -v "^scripts/" || true
+                        ''',
+                        returnStdout: true
+                    ).trim().split('\n').findAll { it.trim() }
 
-            // Always generate test file paths (do not check existence here)
-            def filesToStage = processedFiles.collect {
-                "__tests__/${it.replaceAll(/\\.js$/, '.test.js')}"
-            }
+                    def filesToStage = processedFiles.collect {
+                        "__tests__/${it.replaceAll(/\\.js$/, '.test.js')}"
+                    }
 
-            // Stage all files (Git will ignore missing ones)
-            filesToStage.each { tf ->
-                sh "git add '${tf}' || true"
-            }
+                    filesToStage.each { tf ->
+                        sh "git add '${tf}' || true"
+                    }
 
-            def stagedCount = sh(
-                script: 'git diff --cached --name-only | grep "__tests__/" | wc -l || echo 0',
-                returnStdout: true
-            ).trim().toInteger()
+                    def stagedCount = sh(
+                        script: 'git diff --cached --name-only | grep "__tests__/" | wc -l || echo 0',
+                        returnStdout: true
+                    ).trim().toInteger()
 
-            if (stagedCount > 0) {
-                sh """
-                    git commit -m "🤖 AI-generated unit tests [skip ci]"
-                    git push https://${GITHUB_TOKEN}@github.com/HarshitMalik22/AIUnitTest.git HEAD:${env.CURRENT_BRANCH}
-                """
-                echo "✅ ${stagedCount} test file(s) pushed."
+                    if (stagedCount > 0) {
+                        sh """
+                            git commit -m "🤖 AI-generated unit tests [skip ci]"
+                            git push https://${GITHUB_TOKEN}@github.com/HarshitMalik22/AIUnitTest.git HEAD:${env.CURRENT_BRANCH}
+                        """
+                        echo "✅ ${stagedCount} test file(s) pushed."
 
-                // PR creation
-                def prExists = sh(
-                    script: "gh pr list --repo HarshitMalik22/AIUnitTest --head ${env.CURRENT_BRANCH} --json number --jq '.[0].number' || echo ''",
-                    returnStdout: true
-                ).trim()
+                        def prExists = sh(
+                            script: "gh pr list --repo HarshitMalik22/AIUnitTest --head ${env.CURRENT_BRANCH} --json number --jq '.[0].number' || echo ''",
+                            returnStdout: true
+                        ).trim()
 
-                if (prExists) {
-                    echo "♻️ PR #${prExists} already exists."
-                } else {
-                    def prTitle = "🤖 AI-Generated Tests for ${env.CURRENT_BRANCH}"
-                    def prBody = """
-                    ## AI-Generated Unit Tests
+                        if (prExists) {
+                            echo "♻️ PR #${prExists} already exists."
+                        } else {
+                            def prTitle = "🤖 AI-Generated Tests for ${env.CURRENT_BRANCH}"
+                            def prBody = """
+                            ## AI-Generated Unit Tests
 
-                    This PR contains automatically generated unit tests by the Jenkins AI pipeline.
+                            This PR contains automatically generated unit tests by the Jenkins AI pipeline.
 
-                    **Generated Test Files**
-                    ${filesToStage.collect { "- ${it}" }.join('\n')}
+                            **Generated Test Files**
+                            ${filesToStage.collect { "- ${it}" }.join('\n')}
 
-                    **Pipeline Run:** ${env.BUILD_URL}
-                    """
+                            **Pipeline Run:** ${env.BUILD_URL}
+                            """
 
-                    sh """
-                        gh pr create \
-                          --repo HarshitMalik22/AIUnitTest \
-                          --title "${prTitle}" \
-                          --body "${prBody}" \
-                          --base main \
-                          --head ${env.CURRENT_BRANCH}
-                    """
-                    echo "✅ PR created successfully."
+                            sh """
+                                gh pr create \
+                                  --repo HarshitMalik22/AIUnitTest \
+                                  --title "${prTitle}" \
+                                  --body "${prBody}" \
+                                  --base main \
+                                  --head ${env.CURRENT_BRANCH}
+                            """
+                            echo "✅ PR created successfully."
+                        }
+                    } else {
+                        echo "ℹ️ No test files staged to commit."
+                    }
                 }
-            } else {
-                echo "ℹ️ No test files staged to commit."
             }
         }
-    }
-}
-
+    } // end stages
 
     post {
         always { echo 'Pipeline execution finished.' }
         success { echo '✅ Pipeline succeeded!' }
         failure { echo '❌ Pipeline failed — check logs.' }
     }
-}
+} // end pipeline
