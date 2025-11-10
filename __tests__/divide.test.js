@@ -63,3 +63,179 @@ describe('divide function', () => {
     });
   });
 });
+
+describe('Divide Function', () => {
+  describe('Valid Inputs', () => {
+    test('should divide two positive numbers', () => {
+      const result = divide(10, 2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide two negative numbers', () => {
+      const result = divide(-10, -2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide a positive number by a positive number', () => {
+      const result = divide(10, 2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide a negative number by a negative number', () => {
+      const result = divide(-10, -2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide a positive number by a negative number', () => {
+      const result = divide(10, -2);
+      expect(result).toBe(-5);
+    });
+
+    test('should divide a negative number by a positive number', () => {
+      const result = divide(-10, 2);
+      expect(result).toBe(-5);
+    });
+  });
+
+  describe('Invalid Inputs', () => {
+    test('should throw an error when a is not a number', () => {
+      expect(() => divide('a', 2)).toThrowError('a is not a number');
+    });
+
+    test('should throw an error when b is not a number', () => {
+      expect(() => divide(10, 'b')).toThrowError('b is not a number');
+    });
+
+    test('should throw an error when b is zero', () => {
+      expect(() => divide(10, 0)).toThrowError('Division by zero is not allowed');
+    });
+  });
+
+  describe('Boundary Value Analysis', () => {
+    test('should divide two numbers at the minimum boundary', () => {
+      const result = divide(Number.MIN_SAFE_INTEGER, 2);
+      expect(result).toBe(Number.MIN_SAFE_INTEGER / 2);
+    });
+
+    test('should divide two numbers at the maximum boundary', () => {
+      const result = divide(Number.MAX_SAFE_INTEGER, 2);
+      expect(result).toBe(Number.MAX_SAFE_INTEGER / 2);
+    });
+
+    test('should divide two numbers at the zero boundary', () => {
+      const result = divide(0, 2);
+      expect(result).toBe(0);
+    });
+
+    test('should divide two numbers at the negative boundary', () => {
+      const result = divide(-Number.MAX_SAFE_INTEGER, -2);
+      expect(result).toBe(Number.MAX_SAFE_INTEGER);
+    });
+  });
+
+  describe('Equivalence Class Partitioning', () => {
+    test('should divide two numbers in the valid input class', () => {
+      const result = divide(10, 2);
+      expect(result).toBe(5);
+    });
+
+    test('should throw an error when a is not a number in the invalid input class', () => {
+      expect(() => divide('a', 2)).toThrowError('a is not a number');
+    });
+
+    test('should throw an error when b is not a number in the invalid input class', () => {
+      expect(() => divide(10, 'b')).toThrowError('b is not a number');
+    });
+
+    test('should throw an error when b is zero in the invalid input class', () => {
+      expect(() => divide(10, 0)).toThrowError('Division by zero is not allowed');
+    });
+  });
+}
+
+describe('Valid Inputs', () => {
+    test('should divide two positive numbers', () => {
+      const result = divide(10, 2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide two negative numbers', () => {
+      const result = divide(-10, -2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide a positive number by a positive number', () => {
+      const result = divide(10, 2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide a negative number by a negative number', () => {
+      const result = divide(-10, -2);
+      expect(result).toBe(5);
+    });
+
+    test('should divide a positive number by a negative number', () => {
+      const result = divide(10, -2);
+      expect(result).toBe(-5);
+    });
+
+    test('should divide a negative number by a positive number', () => {
+      const result = divide(-10, 2);
+      expect(result).toBe(-5);
+    });
+  }
+
+describe('Invalid Inputs', () => {
+    test('should throw an error when a is not a number', () => {
+      expect(() => divide('a', 2)).toThrowError('a is not a number');
+    });
+
+    test('should throw an error when b is not a number', () => {
+      expect(() => divide(10, 'b')).toThrowError('b is not a number');
+    });
+
+    test('should throw an error when b is zero', () => {
+      expect(() => divide(10, 0)).toThrowError('Division by zero is not allowed');
+    });
+  }
+
+describe('Boundary Value Analysis', () => {
+    test('should divide two numbers at the minimum boundary', () => {
+      const result = divide(Number.MIN_SAFE_INTEGER, 2);
+      expect(result).toBe(Number.MIN_SAFE_INTEGER / 2);
+    });
+
+    test('should divide two numbers at the maximum boundary', () => {
+      const result = divide(Number.MAX_SAFE_INTEGER, 2);
+      expect(result).toBe(Number.MAX_SAFE_INTEGER / 2);
+    });
+
+    test('should divide two numbers at the zero boundary', () => {
+      const result = divide(0, 2);
+      expect(result).toBe(0);
+    });
+
+    test('should divide two numbers at the negative boundary', () => {
+      const result = divide(-Number.MAX_SAFE_INTEGER, -2);
+      expect(result).toBe(Number.MAX_SAFE_INTEGER);
+    });
+  }
+
+describe('Equivalence Class Partitioning', () => {
+    test('should divide two numbers in the valid input class', () => {
+      const result = divide(10, 2);
+      expect(result).toBe(5);
+    });
+
+    test('should throw an error when a is not a number in the invalid input class', () => {
+      expect(() => divide('a', 2)).toThrowError('a is not a number');
+    });
+
+    test('should throw an error when b is not a number in the invalid input class', () => {
+      expect(() => divide(10, 'b')).toThrowError('b is not a number');
+    });
+
+    test('should throw an error when b is zero in the invalid input class', () => {
+      expect(() => divide(10, 0)).toThrowError('Division by zero is not allowed');
+    });
+  }

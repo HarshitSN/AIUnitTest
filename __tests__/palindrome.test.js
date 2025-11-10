@@ -89,3 +89,17 @@ describe('isPalindrome function', () => {
     });
   });
 });
+
+describe('error handling', () => {
+    test('should throw an error for a null input', () => {
+      expect(() => isPalindrome(null)).toThrowError('Input must be a string');
+    });
+
+    test('should throw an error for an undefined input', () => {
+      expect(() => isPalindrome(undefined)).toThrowError('Input must be a string');
+    });
+
+    test('should throw an error for a non-string input', () => {
+      expect(() => isPalindrome(123)).toThrowError('Input must be a string');
+    });
+  }
