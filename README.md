@@ -41,51 +41,6 @@ yarn add --dev node-ai-precommit-tester
    npx husky add .husky/pre-commit "npx node-ai-precommit"
    ```
 
-### Set up with pre-commit
-
-Add this to your `.pre-commit-config.yaml`:
-
-```yaml
-repos:
-  - repo: https://github.com/yourusername/node-ai-precommit-tester
-    rev: v0.1.0 # Use the latest version
-    hooks:
-      - id: node-ai-precommit
-```
-
-## Configuration
-
-Create a `.aiprecommitrc.yml` file in your project root:
-
-```yaml
-# AI settings
-ai:
-  provider: groq # or 'openai' if implemented
-  model: llama-3.1-8b-instant
-  apiKey: ${GROQ_API_KEY} # or paste your API key directly
-
-# Test settings
-test:
-  generate: true
-  directory: __tests__
-  framework: jest
-
-# Risk assessment
-risk:
-  maxAllowed: 7 # Block commits with risk score > 7
-
-# UI settings
-ui:
-  enableDashboard: true
-  port: 3000
-
-# File patterns
-include:
-  - '**/*.{js,jsx,ts,tsx}'
-exclude:
-  - '**/node_modules/**'
-  - '**/dist/**'
-```
 
 ## Environment Variables
 
