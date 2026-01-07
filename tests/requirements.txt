@@ -1,0 +1,6 @@
+pytest>=7.0
+httpx>=0.24
+schemathesis>=3.15
+typing-extensions>=3.7
+uuid>=1.0
+requests>=2.28  # Fallback in case some environments prefer requests over httpx
