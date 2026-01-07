@@ -1,0 +1,4 @@
+pytest>=7.0
+httpx>=0.24
+schemathesis>=3.0
+typing-extensions>=4.0
