@@ -1,0 +1,75 @@
+{
+  "issue_key": "KAN-4",
+  "language": "python",
+  "gate": {
+    "should_proceed": true,
+    "reason": "OpenAPI spec has been fetched and verified."
+  },
+  "test_cases": {
+    "tests/conftest.py": "import pytest\nimport requests\nfrom typing import Dict, Any\n\nBASE_URL: str = \"https://petstore.swagger.io/v2\"\n\n\n@pytest.fixture(scope=\"session\")\ndef http_session() -> requests.Session:\n    \"\"\"\n    Session fixture for making HTTP requests to the Petstore API.\n    Configured to accept JSON responses and send JSON payloads by default.\n    \"\"\"\n    s = requests.Session()\n    s.headers.update({\"Accept\": \"application/json\", \"Content-Type\": \"application/json\"})\n    return s\n\n\n@pytest.fixture\ndef unique_pet_payload() -> Dict[str, Any]:\n    \"\"\"\n    Provides a unique Pet payload for tests to avoid conflicts.\n    \"\"\"\n    import uuid\n    name = f\"TestPet-{uuid.uuid4()}\"\n    payload: Dict[str, Any] = {\n        \"name\": name,\n        \"photoUrls\": [\"http://example.com/photo.jpg\"],\n        \"status\": \"available\"\n    }\n    return payload\n\n\n@pytest.fixture\ndef api_key_header() -> Dict[str, str]:\n    \"\"\"\n    API key header used for endpoints that require authentication.\n    \"\"\"\n    return {\"api_key\": \"special-key\"}",
+    "tests/test_pet_api.py": "import pytest\nimport requests\nfrom uuid import uuid4\nfrom typing import Any, Dict\n\nBASE_URL: str = \"https://petstore.swagger.io/v2\"\n\n\ndef test_add_pet_and_get_pet(http_session: requests.Session, unique_pet_payload: Dict[str, Any]) -> None:\n    \"\"\"\n    Happy path: add a new pet and then fetch it by its assigned ID.\n    Ensures data consistency between create and retrieve operations.\n    \"\"\"\n    payload: Dict[str, Any] = unique_pet_payload\n    create_resp = http_session.post(f\"{BASE_URL}/pet\", json=payload)\n    assert create_resp.status_code in (200, 201)\n    created: Dict[str, Any] = create_resp.json()\n    pet_id = created.get(\"id\")\n    assert pet_id is not None\n\n    get_resp = http_session.get(f\"{BASE_URL}/pet/{pet_id}\")\n    assert get_resp.status_code == 200\n    fetched = get_resp.json()\n    assert fetched.get(\"id\") == pet_id\n    assert fetched.get(\"name\") == payload.get(\"name\")\n\n\ndef test_find_pets_by_status(http_session: requests.Session) -> None:\n    \"\"\"\n    Happy path: find pets by status 'available' and validate response structure.\n    \"\"\"\n    resp = http_session.get(f\"{BASE_URL}/pet/findByStatus?status=available\")\n    assert resp.status_code == 200\n    data = resp.json()\n    assert isinstance(data, list)\n\n\ndef test_find_pets_by_status_invalid(http_session: requests.Session) -> None:\n    \"\"\"\n    Validation path: invalid status value should produce a client error.\n    The API spec indicates 400 for invalid status values.\n    \"\"\"\n    resp = http_session.get(f\"{BASE_URL}/pet/findByStatus?status=unknown\")\n    assert resp.status_code in (400, 422)\n\n\ndef test_get_pet_by_id_not_found(http_session: requests.Session) -> None:\n    \"\"\"\n    Not found path: request a non-existent pet by ID and expect 404 (or equivalent).\n    \"\"\"\n    resp = http_session.get(f\"{BASE_URL}/pet/9999999999\")\n    assert resp.status_code == 404 or resp.status_code == 400\n\n\ndef test_upload_image_happy_path(http_session: requests.Session, unique_pet_payload: Dict[str, Any]) -> None:\n    \"\"\"\n    Happy path: upload an image for a newly created pet.\n    Uses multipart/form-data with a small in-memory file to simulate upload.\n    \"\"\"\n    payload = unique_pet_payload\n    create_resp = http_session.post(f\"{BASE_URL}/pet\", json=payload)\n    assert create_resp.status_code in (200, 201)\n    pet_id = create_resp.json().get(\"id\")\n    assert pet_id is not None\n\n    files = {\n        \"file\": (\"test.txt\", b\"hello world\", \"text/plain\")\n    }\n    data = {\n        \"additionalMetadata\": \"test upload\"\n    }\n    upload_resp = http_session.post(f\"{BASE_URL}/pet/{pet_id}/uploadImage\", data=data, files=files)\n    assert upload_resp.status_code == 200\n    upload_json = upload_resp.json()\n    # The ApiResponse shape may vary; ensure common fields exist\n    assert isinstance(upload_json, dict)\n    assert any(k in upload_json for k in (\"code\", \"message\", \"type\"))\n\n\ndef test_validation_error_missing_body(http_session: requests.Session) -> None:\n    \"\"\"\n    Validation path: POST /pet with an empty body should yield a validation error.\n    \"\"\"\n    resp = http_session.post(f\"{BASE_URL}/pet\", json={})\n    assert resp.status_code in (400, 405)\n\n\ndef test_unauthorized_get_pet_with_api_key(http_session: requests.Session, unique_pet_payload: Dict[str, Any]) -> None:\n    \"\"\"\n    Authentication path: create a pet, then fetch it using an API key header to exercise auth.\n    Depending on server configuration, the response may be 200 (authorized) or\n    another status indicating auth requirements. We accept 200, 401, or 403.\n    \"\"\"\n    payload = unique_pet_payload\n    create_resp = http_session.post(f\"{BASE_URL}/pet\", json=payload)\n    assert create_resp.status_code in (200, 201)\n    pet_id = create_resp.json().get(\"id\")\n    assert pet_id is not None\n\n    resp_with_key = http_session.get(f\"{BASE_URL}/pet/{pet_id}\", headers={\"api_key\": \"special-key\"})\n    assert resp_with_key.status_code in (200, 401, 403)\n    if resp_with_key.status_code == 200:\n        data = resp_with_key.json()\n        assert data.get(\"id\") == pet_id",
+    "tests/test_pet_schema.py": "import pytest\nimport schemathesis\n\n# Use the public Swagger Petstore OpenAPI (Swagger/OpenAPI v2) spec\nSCHEMA_URL = \"https://petstore.swagger.io/v2/swagger.json\"\n\nschema = schemathesis.from_uri(SCHEMA_URL)\n\n\n@schema.parametrize()\ndef test_api(case) -> None:\n    \"\"\"\n    Schemathesis property-based test harness.\n    Iterates over all valid cases defined in the OpenAPI spec and validates\n    that the endpoint responses conform to the schema.\n    \"\"\"\n    case.call_and_validate()",
+    "tests/README.md": "# Petstore API Test Suite\n\nThis repository contains pytest-based tests for the Swagger Petstore API (OpenAPI v2).\n\nHow to run:\n- Install dependencies:\n  - pytest\n  - requests\n  - schemathesis\n- Run tests:\n  - pytest -q\n\nNotes:\n- Tests include happy-path flows, validation errors, not-found scenarios, and a Schemathesis-based property test harness that validates all endpoints against the OpenAPI schema.\n- Tests use the public Petstore API at https://petstore.swagger.io/v2.",
+    "tests/requirements.txt": "pytest\nrequests\nschemathesis"
+  },
+  "reviewer": {
+    "score": 0.85,
+    "syntax_ok": true,
+    "coverage_score": 0.8,
+    "criteria_score": 0.9,
+    "notes": "The tests cover happy paths and validation errors, but there are missing tests for checking 404 on missing IDs in a more explicit manner. Additionally, the test for unauthorized access could be improved to ensure it checks for 403 specifically when the API key is invalid. The test for uploading an image does not check the response structure thoroughly. Consider adding more specific tests for edge cases and error handling.",
+    "files": {
+      "tests/test_pet_api.py": "def test_get_pet_by_id_not_found(http_session: requests.Session) -> None:\n    \"\"\"\n    Not found path: request a non-existent pet by ID and expect 404 (or equivalent).\n    \"\"\"\n    resp = http_session.get(f\"{BASE_URL}/pet/9999999999\")\n    assert resp.status_code == 404\n\n\ndef test_unauthorized_get_pet_with_invalid_api_key(http_session: requests.Session, unique_pet_payload: Dict[str, Any]) -> None:\n    \"\"\"\n    Authentication path: create a pet, then fetch it using an invalid API key header to exercise auth.\n    Expecting a 403 response.\n    \"\"\"\n    payload = unique_pet_payload\n    create_resp = http_session.post(f\"{BASE_URL}/pet\", json=payload)\n    assert create_resp.status_code in (200, 201)\n    pet_id = create_resp.json().get(\"id\")\n    assert pet_id is not None\n\n    resp_with_invalid_key = http_session.get(f\"{BASE_URL}/pet/{pet_id}\", headers={\"api_key\": \"invalid-key\"})\n    assert resp_with_invalid_key.status_code == 403\n"
+    }
+  },
+  "review_average": 0.9,
+  "review_threshold": 0.9,
+  "refiner_output": {
+    "tests/conftest.py": "import pytest\nimport requests\nfrom typing import Dict, Any\n\nBASE_URL: str = \"https://petstore.swagger.io/v2\"\n\n\n@pytest.fixture(scope=\"session\")\ndef http_session() -> requests.Session:\n    \"\"\"\n    Session fixture for making HTTP requests to the Petstore API.\n    Configured to accept JSON responses and send JSON payloads by default.\n    \"\"\"\n    s = requests.Session()\n    s.headers.update({\"Accept\": \"application/json\", \"Content-Type\": \"application/json\"})\n    return s\n\n\n@pytest.fixture\ndef unique_pet_payload() -> Dict[str, Any]:\n    \"\"\"\n    Provides a unique Pet payload for tests to avoid conflicts.\n    \"\"\"\n    import uuid\n    name = f\"TestPet-{uuid.uuid4()}\"\n    payload: Dict[str, Any] = {\n        \"name\": name,\n        \"photoUrls\": [\"http://example.com/photo.jpg\"],\n        \"status\": \"available\"\n    }\n    return payload\n\n\n@pytest.fixture\ndef api_key_header() -> Dict[str, str]:\n    \"\"\"\n    API key header used for endpoints that require authentication.\n    \"\"\"\n    return {\"api_key\": \"special-key\"}\n",
+    "tests/test_pet_api.py": "def test_get_pet_by_id_not_found(http_session: requests.Session) -> None:\n    \"\"\"\n    Not found path: request a non-existent pet by ID and expect 404 (or equivalent).\n    \"\"\"\n    resp = http_session.get(f\"{BASE_URL}/pet/9999999999\")\n    assert resp.status_code == 404\n\n\ndef test_unauthorized_get_pet_with_invalid_api_key(http_session: requests.Session, unique_pet_payload: Dict[str, Any]) -> None:\n    \"\"\"\n    Authentication path: create a pet, then fetch it using an invalid API key header to exercise auth.\n    Expecting a 403 response.\n    \"\"\"\n    payload = unique_pet_payload\n    create_resp = http_session.post(f\"{BASE_URL}/pet\", json=payload)\n    assert create_resp.status_code in (200, 201)\n    pet_id = create_resp.json().get(\"id\")\n    assert pet_id is not None\n\n    resp_with_invalid_key = http_session.get(f\"{BASE_URL}/pet/{pet_id}\", headers={\"api_key\": \"invalid-key\"})\n    assert resp_with_invalid_key.status_code == 403\n\n\ndef test_upload_image(http_session: requests.Session, unique_pet_payload: Dict[str, Any]) -> None:\n    \"\"\"\n    Test uploading an image for a pet and validate the response structure.\n    \"\"\"\n    payload = unique_pet_payload\n    create_resp = http_session.post(f\"{BASE_URL}/pet\", json=payload)\n    assert create_resp.status_code in (200, 201)\n    pet_id = create_resp.json().get(\"id\")\n    assert pet_id is not None\n\n    with open(\"tests/test_image.jpg\", \"wb\") as image_file:\n        image_file.write(b\"fake image data\")\n\n    files = {'file': open(\"tests/test_image.jpg\", 'rb')}\n    upload_resp = http_session.post(f\"{BASE_URL}/pet/{pet_id}/uploadImage\", files=files)\n    assert upload_resp.status_code == 200\n    assert \"message\" in upload_resp.json()\n    assert upload_resp.json()[\"message\"] == \"Uploaded image successfully\"\n",
+    "tests/test_pet_schema.py": "import pytest\nimport schemathesis\n\n# Use the public Swagger Petstore OpenAPI (Swagger/OpenAPI v2) spec\nSCHEMA_URL = \"https://petstore.swagger.io/v2/swagger.json\"\n\nschema = schemathesis.from_uri(SCHEMA_URL)\n\n\n@schema.parametrize()\ndef test_api(case) -> None:\n    \"\"\"\n    Schemathesis property-based test harness.\n    Iterates over all valid cases defined in the OpenAPI spec and validates\n    that the endpoint responses conform to the schema.\n    \"\"\"\n    case.call_and_validate()\n"
+  },
+  "refinement_metadata": {
+    "triggered": true,
+    "applied": true,
+    "threshold": 0.9,
+    "average_score": 0.9,
+    "coverage_score": 0.8,
+    "criteria_score": 0.9,
+    "syntax_ok": true,
+    "changes": [
+      {
+        "path": "tests/conftest.py",
+        "change": "modified",
+        "before_sha256": "3ad23e543a2511f15f7641d3706c3caa4df64acf69e369bbd0bb2aa74847fb36",
+        "after_sha256": "71b1b3edeaa7dd3c4ade2ab95dc22c691bb075b624daaf3f830700ebdb9302fe",
+        "before_lines": 39,
+        "after_lines": 39
+      },
+      {
+        "path": "tests/test_pet_api.py",
+        "change": "modified",
+        "before_sha256": "1cec9318d79d9063a3cc9c499ba7112ff40180f53cb86ee45cc8370fc72ebe46",
+        "after_sha256": "bf4ce06f5073f45ac6afc3c944244ce3d20b801ef955ec2ed2e3acb5f27e1367",
+        "before_lines": 21,
+        "after_lines": 41
+      },
+      {
+        "path": "tests/test_pet_schema.py",
+        "change": "modified",
+        "before_sha256": "adb6c2a8d23df66a8d6e97cdf86f5c06938e0de494093cdaa183fdae5a9d7924",
+        "after_sha256": "2625141dfd1c7c1409d520b092586fd6b82092aade0fdb50c80c1aab1eb4748e",
+        "before_lines": 17,
+        "after_lines": 17
+      }
+    ]
+  },
+  "contract_summary": {
+    "has_openapi_spec": true,
+    "openapi_url": "https://petstore.swagger.io/v2/swagger.json",
+    "title": "Swagger Petstore",
+    "version": "2.0",
+    "paths_count": 14,
+    "endpoints_listed_count": null
+  }
+}
