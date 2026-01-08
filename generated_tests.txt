@@ -1,0 +1,225 @@
+---TESTFILE: tests/conftest.py---
+import pytest
+import requests
+import os
+from uuid import uuid4
+
+# Base URL for the Petstore API (OpenAPI v2)
+BASE_URL = os.environ.get("BASE_URL", "https://petstore.swagger.io/v2")
+
+# Default headers for JSON payloads
+DEFAULT_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+}
+
+# API key used by the Petstore sample for authenticated endpoints
+AUTH_HEADERS = {
+    "api_key": "special-key"
+}
+
+
+@pytest.fixture
+def base_url():
+    """Base URL fixture to be used by tests."""
+    return BASE_URL
+
+
+@pytest.fixture
+def auth_headers():
+    """Fixture providing authentication headers for endpoints that require API key."""
+    return dict(AUTH_HEADERS)
+
+
+@pytest.fixture
+def json_headers():
+    """Fixture providing default JSON headers (Accept/Content-Type)."""
+    return dict(DEFAULT_HEADERS)
+
+
+@pytest.fixture
+def combined_headers(auth_headers, json_headers):
+    """Fixture combining auth headers with JSON headers for convenience."""
+    merged = dict(json_headers)
+    merged.update(auth_headers)
+    return merged
+
+
+@pytest.fixture
+def new_pet_payload():
+    """Provides a fresh Pet payload with unique identifiers to avoid collisions."""
+    pet_id = int(uuid4().int % 10**7)
+    return {
+        "id": pet_id,
+        "name": f"TestPet-{pet_id}",
+        "photoUrls": ["http://example.com/photo.jpg"],
+        "status": "available"
+    }
+
+
+---TESTFILE: tests/test_pet_api.py---
+import os
+import pytest
+import requests
+from uuid import uuid4
+
+BASE_URL = os.environ.get("BASE_URL", "https://petstore.swagger.io/v2")
+
+
+def test_create_pet_happy_path(auth_headers, new_pet_payload, json_headers):
+    """Happy path: Create a new pet with valid data and verify response."""
+    url = f"{BASE_URL}/pet"
+    payload = dict(new_pet_payload)
+    headers = dict(json_headers)
+    headers.update(auth_headers := __import__("tests.conftest").conftest.auth_headers if False else {})
+    # Ensure we include auth headers if needed
+    if "headers" in payload:
+        headers.update(payload.pop("headers"))
+    response = requests.post(url, json=payload, headers={**headers})
+    assert response.status_code in (200, 201), f"Expected 200/201, got {response.status_code}"
+    data = response.json()
+    assert "id" in data, "Response should contain an 'id'"
+    assert data["name"] == payload["name"]
+
+
+def test_get_pet_by_id_happy_path(auth_headers, new_pet_payload, json_headers):
+    """Happy path: Create a pet and then fetch it by ID."""
+    create_url = f"{BASE_URL}/pet"
+    payload = dict(new_pet_payload)
+    headers = dict(json_headers)
+    headers.update(auth_headers)
+    resp_create = requests.post(create_url, json=payload, headers=headers)
+    assert resp_create.status_code in (200, 201)
+    created = resp_create.json()
+    pet_id = created.get("id", payload["id"])
+    get_url = f"{BASE_URL}/pet/{pet_id}"
+    resp_get = requests.get(get_url, headers=headers)
+    assert resp_get.status_code == 200
+    fetched = resp_get.json()
+    assert fetched.get("id") == pet_id
+    assert fetched.get("name") == payload["name"]
+
+
+def test_get_pet_by_id_not_found(auth_headers, json_headers):
+    """Not found: Request a non-existent pet and expect 404."""
+    non_existent_id = 999999999
+    url = f"{BASE_URL}/pet/{non_existent_id}"
+    resp = requests.get(url, headers={**json_headers, **auth_headers})
+    assert resp.status_code == 404 or resp.status_code == 400, (
+        f"Expected 404 for not found, got {resp.status_code}"
+    )
+
+
+def test_update_pet_happy_path(auth_headers, new_pet_payload, json_headers):
+    """Happy path: Update an existing pet with new data via PUT /pet."""
+    # Create a pet first
+    create_url = f"{BASE_URL}/pet"
+    payload = dict(new_pet_payload)
+    headers = dict(json_headers)
+    headers.update(auth_headers)
+    resp_create = requests.post(create_url, json=payload, headers=headers)
+    assert resp_create.status_code in (200, 201)
+    created = resp_create.json()
+
+    # Update data
+    updated_payload = dict(payload)
+    updated_payload["name"] = updated_payload["name"] + "-updated"
+    updated_payload["status"] = "sold"
+
+    update_url = f"{BASE_URL}/pet"
+    resp_update = requests.put(update_url, json=updated_payload, headers=headers)
+    assert resp_update.status_code == 200
+    updated = resp_update.json()
+    assert updated.get("name") == updated_payload["name"]
+    assert updated.get("status") == "sold"
+
+
+def test_find_by_status_happy_path(auth_headers, json_headers):
+    """Happy path: Find pets by status (available)."""
+    url = f"{BASE_URL}/pet/findByStatus"
+    params = [("status", "available")]
+    resp = requests.get(url, headers={**json_headers, **auth_headers}, params=params)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+    # Optional: ensure items have a 'id' and 'name'
+    if data:
+        assert "id" in data[0] and "name" in data[0]
+
+
+def test_find_by_tags_happy_path(auth_headers, json_headers):
+    """Happy path: Find pets by tags (multi-value)."""
+    url = f"{BASE_URL}/pet/findByTags"
+    params = [("tags", "tag1"), ("tags", "tag2")]
+    resp = requests.get(url, headers={**json_headers, **auth_headers}, params=params)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, list)
+    if data:
+        assert "id" in data[0] and "name" in data[0]
+
+
+def test_upload_image_happy_path(auth_headers, new_pet_payload, json_headers):
+    """Happy path: Upload an image for an existing pet via multipart/form-data."""
+    # Create a pet first to ensure there is a pet to upload to
+    create_url = f"{BASE_URL}/pet"
+    payload = dict(new_pet_payload)
+    headers = dict(json_headers)
+    headers.update(auth_headers)
+    resp_create = requests.post(create_url, json=payload, headers=headers)
+    assert resp_create.status_code in (200, 201)
+    pet_id = resp_create.json().get("id", payload["id"])
+
+    url = f"{BASE_URL}/pet/{pet_id}/uploadImage"
+    files = {"file": ("test.txt", b"hello world", "text/plain")}
+    data = {"additionalMetadata": "test upload"}
+    resp_upload = requests.post(url, files=files, data=data, headers=headers)
+    assert resp_upload.status_code in (200, 201)
+    # Response is ApiResponse with "message" or similar
+    resp_json = resp_upload.json()
+    assert isinstance(resp_json, dict)
+
+
+def test_create_pet_invalid_input_validation_error(json_headers, auth_headers):
+    """Edge case: Invalid input for create pet (missing required fields) should raise 405/400."""
+    url = f"{BASE_URL}/pet"
+    # Intentionally omit required 'name'
+    payload = {
+        "photoUrls": ["http://example.com/photo.jpg"],
+        "status": "available"
+    }
+    resp = requests.post(url, json=payload, headers={**json_headers, **auth_headers})
+    # Some servers return 405 Invalid input for validation error in this API
+    assert resp.status_code in (400, 405)
+
+
+---TESTFILE: tests/test_schemathesis.py---
+import pytest
+import schemathesis as sch
+
+# Schemathesis will fetch and validate against the OpenAPI spec
+SCHEMA_URL = "https://petstore.swagger.io/v2/swagger.json"
+
+try:
+    SCHEMA = sch.from_url(SCHEMA_URL)
+    SCHEMA.parametrize()
+    SCHEMA_AVAILABLE = True
+except Exception:
+    SCHEMA_AVAILABLE = False
+    SCHEMA = None
+
+
+@pytest.mark.skipif(not SCHEMA_AVAILABLE, reason="Schemathesis schema unavailable or couldn't be loaded")
+def test_schemathesis(case):
+    """
+    Property-based tests against the Petstore OpenAPI spec using Schemathesis.
+    Each generated case will be executed and validated against the schema.
+    If the API requires an API key, the test will inject the required header.
+    """
+    # Inject API key header if available in the case or for endpoints that require it
+    try:
+        if hasattr(case, "headers"):
+            case.headers.update({"api_key": "special-key"})
+    except Exception:
+        pass
+    case.call_and_validate()
