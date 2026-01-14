@@ -1,0 +1,3 @@
+pytest>=6.0
+requests>=2.25
+schemathesis>=3.0
