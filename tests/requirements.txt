@@ -1,0 +1,4 @@
+pytest>=7.0
+requests>=2.27
+schemathesis>=3.0
+pyyaml>=5.1
